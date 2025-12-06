@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SonicSlice - Smart Audio Cutter</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Intro.js for Walkthrough -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intro.js/7.2.0/introjs.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intro.js/7.2.0/intro.min.js"></script>
+
+    <!-- Wavesurfer JS -->
+    <script src="https://unpkg.com/wavesurfer.js@7/dist/wavesurfer.min.js"></script>
+    <script src="https://unpkg.com/wavesurfer.js@7/dist/plugins/regions.min.js"></script>
+    <script src="https://unpkg.com/wavesurfer.js@7/dist/plugins/timeline.min.js"></script>
+
+    <!-- LameJS for MP3 Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #000000;
+            /* Modern Mesh Gradient Background */
+            background-image: 
+                radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
+                radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), 
+                radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%),
+                radial-gradient(at 0% 100%, hsla(240,100%,20%,0.5) 0, transparent 50%),
+                radial-gradient(at 100% 100%, hsla(280,100%,20%,0.5) 0, transparent 50%);
+            background-attachment: fixed;
+            color: #e2e8f0;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05); 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2); 
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.4); 
+        }
+
+        /* Modern Glassmorphism Panel */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .glass-panel:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+        }
+
+        .glass-header {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Button Gradients */
+        .btn-primary {
+            background: linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%);
+            box-shadow: 0 4px 15px rgba(217, 70, 239, 0.3);
+        }
+        .btn-primary:hover {
+            box-shadow: 0 6px 20px rgba(217, 70, 239, 0.5);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* IntroJS Customization for Glass Theme */
+        .introjs-tooltip {
+            background-color: rgba(30, 41, 59, 0.95) !important;
+            backdrop-filter: blur(10px) !important;
+            color: #fff !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            border-radius: 12px !important;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5) !important;
+        }
+        .introjs-arrow.top { border-bottom-color: rgba(30, 41, 59, 0.95) !important; }
+        .introjs-arrow.bottom { border-top-color: rgba(30, 41, 59, 0.95) !important; }
+        .introjs-tooltipbuttons button {
+            background: linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%) !important;
+            color: white !important;
+            text-shadow: none !important;
+            border-radius: 8px !important;
+            border: none !important;
+        }
+        
+        .loader {
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top: 3px solid #d946ef;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Smooth scroll behavior */
+        html { scroll-behavior: smooth; }
+        
+        /* Drop Zone Animation */
+        .drop-active {
+            border-color: #d946ef !important;
+            background: rgba(217, 70, 239, 0.1) !important;
+            transform: scale(1.02);
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden text-slate-200">
+
+    <!-- Header -->
+    <header class="h-16 md:h-20 glass-header flex items-center justify-between px-4 md:px-8 sticky top-0 z-50">
+        <div class="flex items-center gap-2 md:gap-3">
+            <div class="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-gradient-to-br from-violet-600 to-fuchsia-600 flex items-center justify-center shadow-lg shadow-violet-500/20">
+                <i class="fa-solid fa-wave-square text-white text-sm md:text-lg"></i>
+            </div>
+            <h1 class="text-xl md:text-2xl font-bold tracking-tight text-white">Sonic<span class="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-fuchsia-400">Slice</span></h1>
+        </div>
+        <div class="flex gap-4 md:gap-6 text-xs md:text-sm font-medium">
+             <a href="#about-dev" class="text-slate-300 hover:text-white hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.5)] transition-all">About Dev</a>
+            <button onclick="startTour()" class="text-slate-300 hover:text-white hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.5)] transition-all flex items-center gap-2">
+                <i class="fa-regular fa-circle-question"></i> <span class="hidden md:inline">Help</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Container (Scrollable) -->
+    <main class="flex-1 overflow-y-auto overflow-x-hidden flex flex-col pb-20">
+        
+        <!-- View Container -->
+        <div class="flex-1 flex flex-col min-h-[60vh] md:min-h-[70vh]">
+            
+            <!-- VIEW 1: Upload (Visible initially) -->
+            <div id="upload-view" class="flex-1 flex flex-col items-center justify-center p-4 md:p-6 transition-all duration-500 animate-fade-in">
+                <div class="text-center p-8 md:p-12 border-2 border-dashed border-slate-600/50 rounded-3xl transition-all duration-300 glass-panel cursor-pointer max-w-2xl w-full group hover:border-violet-500/50" id="drop-zone">
+                    <input type="file" id="audio-input" accept="audio/*" class="hidden">
+                    
+                    <div class="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-slate-800 to-slate-900 rounded-full flex items-center justify-center mx-auto mb-6 md:mb-8 shadow-inner border border-slate-700 group-hover:scale-110 transition-transform duration-300">
+                        <i class="fa-solid fa-music text-3xl md:text-4xl text-transparent bg-clip-text bg-gradient-to-br from-violet-400 to-fuchsia-400"></i>
+                    </div>
+                    
+                    <h2 class="text-2xl md:text-3xl font-bold mb-3 text-white">Upload Audio</h2>
+                    <p class="text-slate-400 mb-8 text-sm md:text-lg font-light">Drag & drop or click to select <br><span class="text-xs uppercase tracking-widest text-slate-500 mt-2 block">(MP3, WAV, FLAC)</span></p>
+                    
+                    <button class="px-6 py-2.5 md:px-8 md:py-3 btn-primary text-white font-semibold rounded-xl transition-all text-sm md:text-base" onclick="document.getElementById('audio-input').click()">
+                        Select File
+                    </button>
+                </div>
+            </div>
+
+            <!-- VIEW 2: Editor (Hidden initially) -->
+            <div id="editor-view" class="hidden flex-col p-4 md:p-6 lg:p-10 transition-all duration-500 flex-1 max-w-7xl mx-auto w-full">
+                
+                <!-- Top Bar: File Info & Zoom -->
+                <div class="flex flex-col md:flex-row justify-between items-center mb-4 md:mb-6 gap-3 md:gap-4">
+                    <div class="flex items-center gap-3 w-full md:w-auto glass-panel px-3 py-2 md:px-4 md:py-2 rounded-xl">
+                        <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-white/5 flex items-center justify-center text-violet-400">
+                            <i class="fa-solid fa-file-audio text-sm md:text-xl"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h3 id="filename" class="font-semibold text-white truncate text-sm md:text-base max-w-[150px] md:max-w-xs">filename.mp3</h3>
+                            <p id="duration" class="text-[10px] md:text-xs text-slate-400 font-mono">00:00</p>
+                        </div>
+                        <button onclick="resetApp()" class="ml-2 text-[10px] md:text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 px-2 py-1 md:px-3 md:py-1.5 rounded-lg transition-colors">
+                            Change
+                        </button>
+                    </div>
+
+                    <div class="glass-panel p-1 rounded-xl flex gap-1 w-full md:w-auto justify-center md:justify-start" id="step-zoom">
+                        <button onclick="zoomIn()" class="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
+                        <button onclick="zoomOut()" class="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+                    </div>
+                </div>
+
+                <!-- Waveform Container -->
+                <div class="relative glass-panel rounded-2xl p-4 md:p-6 mb-6 md:mb-8 flex flex-col justify-center min-h-[220px] md:min-h-[280px] border border-white/10" id="step-waveform">
+                    <div id="waveform" class="w-full"></div>
+                    <!-- Timeline Container is usually appended automatically, but we can target it to style -->
+                    
+                    <!-- Loading State -->
+                    <div id="waveform-loader" class="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-20 hidden rounded-2xl transition-all">
+                        <div class="text-center bg-black/40 p-4 md:p-6 rounded-2xl border border-white/10 backdrop-blur-md">
+                            <div class="loader mb-2 md:mb-3"></div>
+                            <p id="loader-text" class="text-xs md:text-sm font-medium text-fuchsia-300 tracking-wide">Processing...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Controls Area -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-4">
+                    
+                    <!-- Playback Controls -->
+                    <div class="glass-panel p-4 md:p-6 rounded-2xl flex items-center justify-center gap-6 md:gap-8 order-1 md:order-none" id="step-playback">
+                        <button onclick="seekToStart()" class="text-slate-400 hover:text-white transition-colors p-2 hover:bg-white/5 rounded-full" title="Go to Selection Start">
+                            <i class="fa-solid fa-backward-step text-lg md:text-xl"></i>
+                        </button>
+                        <button id="play-btn" onclick="togglePlay()" class="w-14 h-14 md:w-16 md:h-16 btn-primary text-white rounded-full flex items-center justify-center text-xl md:text-2xl transition-all transform hover:scale-105 active:scale-95">
+                            <i class="fa-solid fa-play pl-1"></i>
+                        </button>
+                        <button onclick="stopPlayback()" class="text-slate-400 hover:text-white transition-colors p-2 hover:bg-white/5 rounded-full">
+                            <i class="fa-solid fa-stop text-lg md:text-xl"></i>
+                        </button>
+                    </div>
+
+                    <!-- Selection Info & Auto Trim -->
+                    <div class="glass-panel p-4 md:p-6 rounded-2xl flex flex-col justify-center gap-3 md:gap-4 order-2 md:order-none" id="step-smart">
+                        <div class="flex justify-between text-[10px] md:text-xs text-slate-400 font-mono bg-black/20 p-2 rounded-lg">
+                            <span>Start: <span id="start-time" class="text-violet-300">0.00s</span></span>
+                            <span>End: <span id="end-time" class="text-fuchsia-300">0.00s</span></span>
+                        </div>
+                        <button onclick="autoTrimTrend()" class="w-full py-2.5 md:py-3 rounded-xl bg-gradient-to-r from-indigo-500/20 to-purple-500/20 hover:from-indigo-500/30 hover:to-purple-500/30 border border-indigo-500/30 text-indigo-200 text-xs md:text-sm font-medium transition-all flex items-center justify-center gap-2 group">
+                            <i class="fa-solid fa-wand-magic-sparkles group-hover:text-white transition-colors"></i> Auto-Detect
+                        </button>
+                        <p class="text-[10px] text-slate-500 text-center uppercase tracking-wider hidden md:block">Finds loudest section</p>
+                    </div>
+
+                    <!-- Export -->
+                    <div class="glass-panel p-4 md:p-6 rounded-2xl flex flex-col justify-between gap-3 order-3 md:order-none" id="step-export">
+                        <div class="w-full">
+                            <label class="text-[10px] uppercase text-slate-400 font-bold tracking-wider mb-2 block">Format</label>
+                            <div class="relative">
+                                <select id="export-format" class="w-full bg-black/20 border border-white/10 text-slate-200 text-xs md:text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-fuchsia-500 focus:ring-1 focus:ring-fuchsia-500 appearance-none">
+                                    <option value="wav" class="bg-slate-900">WAV (Lossless)</option>
+                                    <option value="mp3" class="bg-slate-900">MP3 (Compressed)</option>
+                                </select>
+                                <div class="absolute right-3 top-2.5 pointer-events-none text-slate-400 text-xs">
+                                    <i class="fa-solid fa-chevron-down"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <button id="download-btn" onclick="handleExport()" class="w-full btn-primary text-white font-bold py-2.5 md:py-3 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 mt-auto text-sm md:text-base">
+                            <i class="fa-solid fa-download"></i> Download
+                        </button>
+                        <!-- Reload Option Hidden initially -->
+                        <button id="reload-btn" onclick="resetApp()" class="hidden w-full btn-secondary text-slate-200 text-xs md:text-sm py-2.5 md:py-3 rounded-xl transition-all flex items-center justify-center gap-2 mt-auto">
+                            <i class="fa-solid fa-scissors"></i> Trim New Audio
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- About Developer Section -->
+        <div id="about-dev" class="w-full mt-48 md:mt-72 pb-20 pt-10 px-4 md:px-6 relative z-10">
+            <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+            
+            <div class="max-w-4xl mx-auto">
+                <div class="glass-panel p-6 md:p-10 rounded-3xl flex flex-col md:flex-row items-center gap-8 md:gap-14 border border-white/10 shadow-2xl relative overflow-hidden">
+                    
+                    <!-- Decorative background blob -->
+                    <div class="absolute -top-20 -right-20 w-64 h-64 bg-fuchsia-600/20 rounded-full blur-3xl pointer-events-none"></div>
+                    <div class="absolute -bottom-20 -left-20 w-64 h-64 bg-violet-600/20 rounded-full blur-3xl pointer-events-none"></div>
+
+                    <!-- Profile Photo -->
+                    <div class="w-32 h-32 md:w-40 md:h-40 flex-shrink-0 relative group z-10">
+                        <div class="absolute inset-0 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-full blur-md opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                        <img src="https://github.com/faizanahmadvns.png" 
+                             alt="Faizan Ahmad" 
+                             class="w-full h-full rounded-full object-cover border-4 border-slate-900/50 relative z-10 shadow-2xl transition-transform duration-500 group-hover:scale-105">
+                        <div class="absolute bottom-1 right-1 bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white rounded-full w-8 h-8 md:w-10 md:h-10 flex items-center justify-center border-4 border-slate-900 z-20 shadow-lg">
+                            <i class="fa-solid fa-code text-xs md:text-sm"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center md:text-left relative z-10">
+                        <h4 class="text-2xl md:text-3xl font-bold text-white mb-2">Faizan Ahmad</h4>
+                        <p class="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-fuchsia-400 text-xs md:text-sm font-bold uppercase tracking-widest mb-4 md:mb-6">Full Stack Developer</p>
+                        <p class="text-slate-300 leading-relaxed mb-6 md:mb-8 font-light text-base md:text-lg">
+                            Crafting intuitive digital experiences. SonicSlice was built to prove that powerful tools don't need servers—just a modern browser and a touch of creativity.
+                        </p>
+                        <div class="flex justify-center md:justify-start gap-4">
+                            <a href="https://github.com/faizanahmadvns" target="_blank" class="w-10 h-10 md:w-12 md:h-12 rounded-full glass-panel flex items-center justify-center text-slate-400 hover:bg-white hover:text-black hover:scale-110 transition-all duration-300 shadow-lg border border-white/5">
+                                <i class="fa-brands fa-github text-lg md:text-xl"></i>
+                            </a>
+                            <a href="https://www.linkedin.com/in/faizan-ahmadvns?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app" target="_blank" class="w-10 h-10 md:w-12 md:h-12 rounded-full glass-panel flex items-center justify-center text-slate-400 hover:bg-[#0077b5] hover:text-white hover:scale-110 transition-all duration-300 shadow-lg border border-white/5">
+                                <i class="fa-brands fa-linkedin-in text-lg md:text-xl"></i>
+                            </a>
+                            <a href="https://x.com/faizan_ahmadvns?t=dQ8hMWTnB6UVdMsaIrWdrg&s=09" target="_blank" class="w-10 h-10 md:w-12 md:h-12 rounded-full glass-panel flex items-center justify-center text-slate-400 hover:bg-black hover:text-white hover:scale-110 transition-all duration-300 shadow-lg border border-white/5">
+                                <i class="fa-brands fa-x-twitter text-lg md:text-xl"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="glass-header py-4 md:py-6 text-center text-[10px] md:text-xs text-slate-500 z-50">
+        <p class="mb-1">Local Processing • Private & Secure</p>
+        <p>Made with <span class="text-fuchsia-500 animate-pulse text-sm">❤️</span> in India</p>
+    </footer>
+
+    <!-- Hidden download link -->
+    <a id="download-link" style="display: none"></a>
+
+    <script>
+        // --- State Management ---
+        let wavesurfer;
+        let wsRegions;
+        let activeRegion;
+        let audioBuffer = null;
+        let originalFile = null;
+
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            initWavesurfer();
+            setupDragDrop();
+            
+            // Check if user has seen tour
+            const hasSeenTour = localStorage.getItem('sonicSliceTourSeen');
+        });
+
+        function initWavesurfer() {
+            // Create Wavesurfer instance
+            wavesurfer = WaveSurfer.create({
+                container: '#waveform',
+                waveColor: 'rgba(139, 92, 246, 0.4)', // Violet with opacity
+                progressColor: '#d946ef', // Fuchsia
+                cursorColor: '#ffffff',
+                barWidth: 3,
+                barRadius: 30,
+                cursorWidth: 2,
+                height: 160,
+                barGap: 3,
+                responsive: true,
+                backend: 'WebAudio', 
+            });
+
+            // Initialize Regions plugin
+            wsRegions = wavesurfer.registerPlugin(
+                WaveSurfer.Regions.create()
+            );
+
+            // Initialize Timeline plugin
+            wavesurfer.registerPlugin(
+                WaveSurfer.Timeline.create({
+                    container: '#waveform', // Adds below the waveform in the same container
+                    height: 20,
+                    primaryColor: '#94a3b8', // slate-400
+                    secondaryColor: '#475569', // slate-600
+                    primaryFontColor: '#cbd5e1', // slate-300
+                    secondaryFontColor: '#94a3b8', // slate-400
+                    style: {
+                        fontSize: '10px',
+                    }
+                })
+            );
+
+            // Region Events
+            wsRegions.on('region-updated', (region) => {
+                activeRegion = region;
+                updateTimeDisplay(region.start, region.end);
+            });
+
+            wsRegions.on('region-clicked', (region, e) => {
+                e.stopPropagation();
+                activeRegion = region;
+                region.play();
+                updatePlayButton(true);
+            });
+
+            // Playback events
+            wavesurfer.on('play', () => updatePlayButton(true));
+            wavesurfer.on('pause', () => updatePlayButton(false));
+            wavesurfer.on('finish', () => updatePlayButton(false));
+        }
+
+        // --- File Handling ---
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('audio-input');
+
+        function setupDragDrop() {
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('drop-active');
+            });
+
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('drop-active');
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('drop-active');
+                if (e.dataTransfer.files.length) {
+                    loadAudio(e.dataTransfer.files[0]);
+                }
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length) {
+                    loadAudio(e.target.files[0]);
+                }
+            });
+        }
+
+        function loadAudio(file) {
+            originalFile = file;
+            const reader = new FileReader();
+            
+            // Show Loader and Switch View
+            document.getElementById('upload-view').classList.add('hidden');
+            document.getElementById('editor-view').classList.remove('hidden');
+            document.getElementById('editor-view').classList.add('flex');
+            
+            document.getElementById('waveform-loader').classList.remove('hidden');
+
+            // Update UI
+            document.getElementById('filename').innerText = file.name;
+
+            reader.onload = function(e) {
+                const arrayBuffer = e.target.result;
+                
+                // Load into Wavesurfer
+                wavesurfer.loadBlob(file); // For visualization
+                
+                // Decode specifically for our processing needs
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                audioCtx.decodeAudioData(arrayBuffer.slice(0), (buffer) => {
+                    audioBuffer = buffer;
+                    document.getElementById('duration').innerText = formatTime(buffer.duration);
+                    document.getElementById('waveform-loader').classList.add('hidden');
+                    
+                    // Add default region (middle 30% or first 15s)
+                    const start = buffer.duration * 0.1;
+                    const end = Math.min(start + 15, buffer.duration * 0.9);
+                    addRegion(start, end);
+
+                    // Start Tour if first time
+                    if (!localStorage.getItem('sonicSliceTourSeen')) {
+                        setTimeout(startTour, 1000);
+                    }
+                });
+            };
+            
+            reader.readAsArrayBuffer(file);
+        }
+
+        function addRegion(start, end) {
+            wsRegions.clearRegions();
+            activeRegion = wsRegions.addRegion({
+                start: start,
+                end: end,
+                content: 'Drag to trim',
+                color: 'rgba(217, 70, 239, 0.2)', // Fuchsia transparent
+                drag: true,
+                resize: true,
+                // Enhanced Handle Style for easier selection
+                handleStyle: {
+                    left: {
+                        width: '6px', // Wider hit area
+                        backgroundColor: '#fff',
+                        borderRadius: '4px',
+                        cursor: 'ew-resize'
+                    },
+                    right: {
+                        width: '6px',
+                        backgroundColor: '#fff',
+                        borderRadius: '4px',
+                        cursor: 'ew-resize'
+                    }
+                }
+            });
+            updateTimeDisplay(start, end);
+        }
+
+        function resetApp() {
+            location.reload();
+        }
+
+        // --- Logic: Auto-Trend Detection ---
+        
+        function autoTrimTrend() {
+            if (!audioBuffer) return;
+
+            const rawData = audioBuffer.getChannelData(0); // Use left channel
+            const sampleRate = audioBuffer.sampleRate;
+            const windowSize = 15; // We look for the best 15 seconds
+            const windowSamples = windowSize * sampleRate;
+            const stepSize = sampleRate; // Check every 1 second (to save CPU)
+
+            let maxEnergy = 0;
+            let bestOffset = 0;
+
+            // Simple RMS calculation over sliding windows
+            for (let i = 0; i < rawData.length - windowSamples; i += stepSize) {
+                let currentEnergy = 0;
+                // Calculate RMS for this window (sub-sampling to be faster)
+                for (let j = 0; j < windowSamples; j += 1000) { 
+                    currentEnergy += Math.abs(rawData[i + j]);
+                }
+                
+                if (currentEnergy > maxEnergy) {
+                    maxEnergy = currentEnergy;
+                    bestOffset = i;
+                }
+            }
+
+            const bestStart = bestOffset / sampleRate;
+            const bestEnd = bestStart + windowSize;
+
+            addRegion(bestStart, bestEnd);
+            wavesurfer.setTime(bestStart);
+            activeRegion.play();
+        }
+
+
+        // --- Logic: Exporting ---
+
+        async function handleExport() {
+            if (!audioBuffer || !activeRegion) return;
+            
+            const format = document.getElementById('export-format').value;
+            const btn = document.getElementById('download-btn');
+            const originalText = btn.innerHTML;
+            
+            btn.disabled = true;
+            btn.innerHTML = '<div class="loader mr-2"></div> Processing...';
+
+            try {
+                const renderedBuffer = await renderOfflineBuffer();
+
+                if (format === 'wav') {
+                    const blob = bufferToWave(renderedBuffer, renderedBuffer.length);
+                    downloadBlob(blob, 'wav');
+                } else if (format === 'mp3') {
+                    const blob = bufferToMp3(renderedBuffer);
+                    downloadBlob(blob, 'mp3');
+                }
+
+                document.getElementById('download-btn').classList.add('hidden');
+                document.getElementById('reload-btn').classList.remove('hidden');
+
+            } catch (error) {
+                console.error("Export failed", error);
+                alert("Something went wrong during export.");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+
+        async function renderOfflineBuffer() {
+            const start = activeRegion.start;
+            const end = activeRegion.end;
+            const duration = end - start;
+
+            const offlineCtx = new OfflineAudioContext(
+                audioBuffer.numberOfChannels,
+                duration * audioBuffer.sampleRate,
+                audioBuffer.sampleRate
+            );
+
+            const source = offlineCtx.createBufferSource();
+            source.buffer = audioBuffer;
+            source.connect(offlineCtx.destination);
+            source.start(0, start, duration);
+
+            return await offlineCtx.startRendering();
+        }
+
+        function downloadBlob(blob, ext) {
+            const url = URL.createObjectURL(blob);
+            const link = document.getElementById('download-link');
+            link.href = url;
+            link.download = `SonicSlice_cut.${ext}`;
+            link.click();
+        }
+
+
+        // --- WAV Converter ---
+        function bufferToWave(abuffer, len) {
+            let numOfChan = abuffer.numberOfChannels,
+                length = len * numOfChan * 2 + 44,
+                buffer = new ArrayBuffer(length),
+                view = new DataView(buffer),
+                channels = [], i, sample,
+                offset = 0,
+                pos = 0;
+
+            setUint32(0x46464952);                         // "RIFF"
+            setUint32(length - 8);                         // file length - 8
+            setUint32(0x45564157);                         // "WAVE"
+            setUint32(0x20746d66);                         // "fmt " chunk
+            setUint32(16);                                 // length = 16
+            setUint16(1);                                  // PCM (uncompressed)
+            setUint16(numOfChan);
+            setUint32(abuffer.sampleRate);
+            setUint32(abuffer.sampleRate * 2 * numOfChan); // avg. bytes/sec
+            setUint16(numOfChan * 2);                      // block-align
+            setUint16(16);                                 // 16-bit (hardcoded in this example)
+            setUint32(0x61746164);                         // "data" - chunk
+            setUint32(length - pos - 4);                   // chunk length
+
+            for(i = 0; i < abuffer.numberOfChannels; i++)
+                channels.push(abuffer.getChannelData(i));
+
+            while(pos < length) {
+                for(i = 0; i < numOfChan; i++) {             // interleave channels
+                    sample = Math.max(-1, Math.min(1, channels[i][offset])); // clamp
+                    sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767)|0; // scale to 16-bit signed int
+                    view.setInt16(pos, sample, true);          // write 16-bit sample
+                    pos += 2;
+                }
+                offset++; 
+            }
+
+            return new Blob([buffer], {type: "audio/wav"});
+
+            function setUint16(data) { view.setUint16(pos, data, true); pos += 2; }
+            function setUint32(data) { view.setUint32(pos, data, true); pos += 4; }
+        }
+
+        // --- MP3 Converter ---
+        function bufferToMp3(buffer) {
+            const channels = buffer.numberOfChannels;
+            const sampleRate = buffer.sampleRate;
+            const mp3Encoder = new lamejs.Mp3Encoder(channels, sampleRate, 128);
+            
+            const right = new Int16Array(buffer.length);
+            const left = new Int16Array(buffer.length);
+
+            for (let i = 0; i < buffer.length; i++) {
+                let s = Math.max(-1, Math.min(1, buffer.getChannelData(0)[i]));
+                left[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+                if (channels > 1) {
+                    s = Math.max(-1, Math.min(1, buffer.getChannelData(1)[i]));
+                    right[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+                } else {
+                    right[i] = left[i];
+                }
+            }
+
+            const sampleBlockSize = 1152; 
+            const mp3Data = [];
+            
+            for (let i = 0; i < left.length; i += sampleBlockSize) {
+                const leftChunk = left.subarray(i, i + sampleBlockSize);
+                const rightChunk = right.subarray(i, i + sampleBlockSize);
+                let mp3buf = (channels === 1) ? mp3Encoder.encodeBuffer(leftChunk) : mp3Encoder.encodeBuffer(leftChunk, rightChunk);
+                if (mp3buf.length > 0) mp3Data.push(mp3buf);
+            }
+            
+            const mp3buf = mp3Encoder.flush();
+            if (mp3buf.length > 0) mp3Data.push(mp3buf);
+
+            return new Blob(mp3Data, { type: 'audio/mp3' });
+        }
+
+
+        // --- UI Interactions ---
+
+        function togglePlay() {
+            if (wavesurfer.isPlaying()) {
+                wavesurfer.pause();
+            } else {
+                if(activeRegion) {
+                    const currentTime = wavesurfer.getCurrentTime();
+                    if(currentTime < activeRegion.start || currentTime >= activeRegion.end) {
+                        activeRegion.play();
+                        return;
+                    }
+                }
+                wavesurfer.play();
+            }
+        }
+
+        function stopPlayback() {
+            wavesurfer.stop();
+            if(activeRegion) wavesurfer.setTime(activeRegion.start);
+        }
+
+        function updatePlayButton(isPlaying) {
+            const btn = document.getElementById('play-btn');
+            btn.innerHTML = isPlaying 
+                ? '<i class="fa-solid fa-pause"></i>' 
+                : '<i class="fa-solid fa-play pl-1"></i>';
+        }
+
+        function zoomIn() {
+            const currentZoom = wavesurfer.options.minPxPerSec || 50;
+            wavesurfer.zoom(currentZoom * 1.5);
+        }
+        
+        function zoomOut() {
+            const currentZoom = wavesurfer.options.minPxPerSec || 50;
+            const newZoom = currentZoom * 0.75;
+            wavesurfer.zoom(newZoom < 50 ? 0 : newZoom); 
+        }
+
+        function seekToStart() {
+            if(activeRegion) wavesurfer.setTime(activeRegion.start);
+            else wavesurfer.setTime(0);
+        }
+
+        function updateTimeDisplay(start, end) {
+            document.getElementById('start-time').innerText = formatTime(start);
+            document.getElementById('end-time').innerText = formatTime(end);
+        }
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = Math.floor(seconds % 60);
+            const ms = Math.floor((seconds % 1) * 100);
+            return `${m}:${s.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
+        }
+
+        // --- Onboarding Tour ---
+
+        function startTour() {
+            const isEditorVisible = !document.getElementById('editor-view').classList.contains('hidden');
+            const steps = [{ title: "Welcome to SonicSlice", intro: "Let's trim your audio like a pro, in style." }];
+
+            if (isEditorVisible) {
+                steps.push(
+                    { element: '#step-waveform', title: "The Waveform", intro: "Drag handles to trim. The new neon visualizer makes it easy to see beats.", position: 'bottom' },
+                    { element: '#step-zoom', title: "Zoom", intro: "Zoom in for millisecond precision.", position: 'left' },
+                    { element: '#step-smart', title: "Smart Detection", intro: "Auto-find the chorus or loudest part.", position: 'top' },
+                    { element: '#step-export', title: "Export", intro: "Download as high-quality WAV or MP3.", position: 'top' }
+                );
+            } else {
+                steps.push({ element: '#drop-zone', title: "Upload", intro: "Drag & drop your audio file here.", position: 'bottom' });
+            }
+            
+            steps.push({ element: '#about-dev', title: "Creator", intro: "Connect with Faizan here.", position: 'top' });
+
+            introJs().setOptions({ steps: steps, showProgress: true, exitOnOverlayClick: true }).start();
+        }
+
+    </script>
+</body>
+</html>
