@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SonicSlice - Smart Audio Cutter</title>
     
+    <!-- App Favicon (Scissors & Waveform Logo) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%238b5cf6'/%3E%3Cstop offset='100%25' stop-color='%23d946ef'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath fill='url(%23g)' d='M30 40a10 10 0 1 0-10 10 10 10 0 0 0 10-10zm-5 5a5 5 0 1 1 5-5 5 5 0 0 1-5 5zm50-5a10 10 0 1 0 10 10 10 10 0 0 0-10-10zm5 5a5 5 0 1 1-5-5 5 5 0 0 1 5 5z'/%3E%3Cpath stroke='url(%23g)' stroke-width='6' stroke-linecap='round' d='M28 35l44 30M28 65l44-30'/%3E%3Cpath stroke='white' stroke-width='3' stroke-linecap='round' d='M40 50l3-8 4 16 4-10 3 6' filter='drop-shadow(0 0 2px rgba(0,0,0,0.5))'/%3E%3C/svg%3E">
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -107,10 +110,23 @@
     <!-- Fixed Header -->
     <header class="h-14 md:h-16 glass-header flex items-center justify-between px-4 md:px-8 shrink-0 z-50">
         <a href="#" onclick="location.reload()" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-600 to-fuchsia-600 flex items-center justify-center shadow-lg shadow-violet-500/20">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" class="w-5 h-5">
-                    <path d="M13.5 4.06c0-1.336-1.616-2.005-2.56-1.06l-4.5 4.5H4.508c-1.141 0-2.318.664-2.66 1.905A9.76 9.76 0 001.5 12c0 .898.121 1.768.35 2.595.341 1.24 1.518 1.905 2.659 1.905h1.93l4.5 4.5c.945.945 2.561.276 2.561-1.06V4.06zM18.584 5.106a.75.75 0 011.06 0c3.808 3.807 3.808 9.98 0 13.788a.75.75 0 11-1.06-1.06 8.25 8.25 0 000-11.668.75.75 0 010-1.06z" />
-                    <path d="M15.932 7.757a.75.75 0 011.061 0 6 6 0 010 8.486.75.75 0 01-1.06-1.061 4.5 4.5 0 000-6.364.75.75 0 010-1.06z" />
+            <div class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 shadow-lg relative overflow-hidden">
+                <!-- App Logo: Scissors Cutting Waveform -->
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" class="w-7 h-7">
+                    <defs>
+                        <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#8b5cf6" />
+                            <stop offset="100%" stop-color="#d946ef" />
+                        </linearGradient>
+                    </defs>
+                    <!-- Scissor Handles -->
+                    <circle cx="25" cy="75" r="10" fill="none" stroke="url(#logoGradient)" stroke-width="6" />
+                    <circle cx="75" cy="75" r="10" fill="none" stroke="url(#logoGradient)" stroke-width="6" />
+                    <!-- Scissor Blades -->
+                    <path d="M32 68 L70 20" stroke="url(#logoGradient)" stroke-width="6" stroke-linecap="round" />
+                    <path d="M68 68 L30 20" stroke="url(#logoGradient)" stroke-width="6" stroke-linecap="round" />
+                    <!-- Waveform in background -->
+                    <path d="M40 45 L45 30 L50 55 L55 35 L60 45" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none" filter="drop-shadow(0 0 2px rgba(0,0,0,0.8))"/>
                 </svg>
             </div>
             <h1 class="text-lg md:text-xl font-bold tracking-tight text-white">Sonic<span class="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-fuchsia-400">Slice</span></h1>
@@ -129,22 +145,50 @@
         <div class="min-h-full flex flex-col">
             
             <!-- VIEW 1: Upload (Visible initially) -->
-            <div id="upload-view" class="flex-1 flex flex-col items-center justify-center p-4 min-h-[60vh]">
-                <div class="text-center p-8 border-2 border-dashed border-slate-600/50 rounded-2xl transition-all duration-300 glass-panel cursor-pointer max-w-lg w-full group hover:border-violet-500/50" id="drop-zone">
-                    <input type="file" id="audio-input" accept="audio/*" class="hidden">
-                    <div class="w-16 h-16 bg-gradient-to-br from-slate-800 to-slate-900 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner border border-slate-700 group-hover:scale-110 transition-transform duration-300">
-                        <i class="fa-solid fa-music text-2xl text-transparent bg-clip-text bg-gradient-to-br from-violet-400 to-fuchsia-400"></i>
+            <div id="upload-view" class="flex-1 flex flex-col items-center justify-center p-4 min-h-[70vh]">
+                
+                <!-- Branding Section -->
+                <div class="text-center mb-10 animate-fade-in">
+                    <div class="flex flex-col items-center justify-center gap-4 mb-4">
+                        <!-- Large Main Logo -->
+                        <div class="w-20 h-20 md:w-24 md:h-24 rounded-3xl bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center shadow-2xl shadow-fuchsia-500/20 border border-white/5 relative">
+                            <div class="absolute inset-0 bg-gradient-to-br from-violet-600/20 to-fuchsia-600/20 rounded-3xl blur-xl"></div>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" class="w-12 h-12 md:w-16 md:h-16 relative z-10">
+                                <defs>
+                                    <linearGradient id="mainLogoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stop-color="#a78bfa" />
+                                        <stop offset="100%" stop-color="#e879f9" />
+                                    </linearGradient>
+                                </defs>
+                                <circle cx="30" cy="70" r="8" fill="none" stroke="url(#mainLogoGradient)" stroke-width="5" />
+                                <circle cx="70" cy="70" r="8" fill="none" stroke="url(#mainLogoGradient)" stroke-width="5" />
+                                <path d="M36 64 L65 25" stroke="url(#mainLogoGradient)" stroke-width="5" stroke-linecap="round" />
+                                <path d="M64 64 L35 25" stroke="url(#mainLogoGradient)" stroke-width="5" stroke-linecap="round" />
+                                <!-- Sound Wave being cut -->
+                                <path d="M20 45 L30 45 M70 45 L80 45" stroke="rgba(255,255,255,0.3)" stroke-width="3" stroke-linecap="round" />
+                                <path d="M42 45 L46 30 L50 60 L54 35 L58 45" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none" filter="drop-shadow(0 0 4px #d946ef)"/>
+                            </svg>
+                        </div>
+                        <h1 class="text-4xl md:text-6xl font-bold tracking-tight text-white mt-4">Sonic<span class="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-fuchsia-400">Slice</span></h1>
                     </div>
-                    <h2 class="text-xl font-bold mb-2 text-white">Upload Audio</h2>
-                    <p class="text-slate-400 mb-6 text-sm font-light">Drag & drop or click to select <br><span class="text-xs uppercase tracking-widest text-slate-500">(MP3, WAV, FLAC)</span></p>
-                    <button class="px-6 py-2.5 btn-primary text-white font-semibold rounded-lg transition-all text-sm" onclick="document.getElementById('audio-input').click()">
-                        Select File
+                    <p class="text-slate-400 text-lg md:text-xl font-light tracking-wide">Cut audio files online. <span class="text-slate-200 font-medium">Fast, Private & Secure.</span></p>
+                </div>
+
+                <div class="text-center p-10 border-2 border-dashed border-slate-600/50 rounded-3xl transition-all duration-300 glass-panel cursor-pointer max-w-xl w-full group hover:border-violet-500/50 hover:bg-white/5" id="drop-zone">
+                    <input type="file" id="audio-input" accept="audio/*" class="hidden">
+                    <div class="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
+                        <i class="fa-solid fa-cloud-arrow-up text-3xl text-fuchsia-400"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold mb-3 text-white">Select Audio File</h2>
+                    <p class="text-slate-400 mb-8 text-sm font-light">Drag & drop or click to upload <br><span class="text-xs uppercase tracking-widest text-slate-500 mt-2 block">(MP3, WAV, FLAC)</span></p>
+                    <button class="px-10 py-3.5 btn-primary text-white font-bold rounded-xl transition-all text-base shadow-xl shadow-fuchsia-500/20" onclick="document.getElementById('audio-input').click()">
+                        Browse Files
                     </button>
                 </div>
             </div>
 
             <!-- VIEW 2: Editor (Hidden initially) -->
-            <div id="editor-view" class="hidden flex-col w-full max-w-6xl mx-auto px-4 py-4 md:py-6 gap-4 animate-fade-in">
+            <div id="editor-view" class="hidden flex-col w-full max-w-7xl mx-auto px-4 py-4 md:py-6 gap-4 animate-fade-in">
                 
                 <!-- File Info Bar -->
                 <div class="flex items-center justify-between gap-3 bg-white/5 border border-white/5 rounded-xl p-3">
@@ -181,9 +225,16 @@
                 </div>
 
                 <!-- Action Grid -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     
-                    <!-- Smart Trim -->
+                    <!-- 1. Playback Controls (Desktop) -->
+                    <div class="hidden md:flex glass-panel p-4 rounded-xl items-center justify-center gap-6" id="step-playback-desktop">
+                        <button onclick="seekToStart()" class="text-slate-400 hover:text-white p-2 transition-colors"><i class="fa-solid fa-backward-step text-lg"></i></button>
+                        <button id="play-btn-desktop" onclick="togglePlay()" class="w-12 h-12 btn-primary text-white rounded-full flex items-center justify-center text-xl shadow-lg hover:scale-105 active:scale-95 transition-transform"><i class="fa-solid fa-play pl-1"></i></button>
+                        <button onclick="stopPlayback()" class="text-slate-400 hover:text-white p-2 transition-colors"><i class="fa-solid fa-stop text-lg"></i></button>
+                    </div>
+
+                    <!-- 2. Smart Trim -->
                     <div class="glass-panel p-4 rounded-xl flex flex-col justify-center gap-2" id="step-smart">
                         <div class="flex justify-between text-[10px] text-slate-400 font-mono bg-black/20 p-2 rounded-lg">
                             <span>Start: <span id="start-time" class="text-violet-300">0.00s</span></span>
@@ -194,7 +245,30 @@
                         </button>
                     </div>
 
-                    <!-- Export Controls -->
+                    <!-- 3. New Effects Panel -->
+                    <div class="glass-panel p-4 rounded-xl flex flex-col gap-3" id="step-effects">
+                        <div class="flex justify-between items-center">
+                            <label class="text-[10px] uppercase text-slate-500 font-bold tracking-wider">Effects</label>
+                            <span class="text-[10px] text-fuchsia-400 bg-fuchsia-500/10 px-1.5 rounded">NEW</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <label class="flex-1 flex items-center justify-between bg-black/20 p-2 rounded-lg cursor-pointer hover:bg-black/30 transition-colors">
+                                <span class="text-xs text-slate-300">Fade In</span>
+                                <input type="checkbox" id="fade-in" class="accent-fuchsia-500 w-3.5 h-3.5">
+                            </label>
+                            <label class="flex-1 flex items-center justify-between bg-black/20 p-2 rounded-lg cursor-pointer hover:bg-black/30 transition-colors">
+                                <span class="text-xs text-slate-300">Fade Out</span>
+                                <input type="checkbox" id="fade-out" class="accent-fuchsia-500 w-3.5 h-3.5">
+                            </label>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-volume-high text-xs text-slate-500"></i>
+                            <input type="range" id="volume" min="0" max="200" value="100" class="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-fuchsia-500">
+                            <span id="vol-val" class="text-[10px] text-slate-400 w-8 text-right font-mono">100%</span>
+                        </div>
+                    </div>
+
+                    <!-- 4. Export Controls -->
                     <div class="glass-panel p-4 rounded-xl flex flex-col gap-2" id="step-export">
                         <div class="flex items-center gap-2">
                             <label class="text-[10px] uppercase text-slate-500 font-bold shrink-0">Format</label>
@@ -209,13 +283,6 @@
                          <button id="reload-btn" onclick="resetApp()" class="hidden w-full btn-secondary text-slate-300 py-2.5 rounded-lg text-sm transition-colors hover:bg-white/10">
                             <i class="fa-solid fa-scissors mr-2"></i> Trim Another
                         </button>
-                    </div>
-
-                    <!-- Desktop Playback (Hidden on Mobile) -->
-                    <div class="hidden md:flex glass-panel p-4 rounded-xl items-center justify-center gap-6" id="step-playback-desktop">
-                        <button onclick="seekToStart()" class="text-slate-400 hover:text-white p-2 transition-colors"><i class="fa-solid fa-backward-step text-lg"></i></button>
-                        <button id="play-btn-desktop" onclick="togglePlay()" class="w-12 h-12 btn-primary text-white rounded-full flex items-center justify-center text-xl shadow-lg hover:scale-105 active:scale-95 transition-transform"><i class="fa-solid fa-play pl-1"></i></button>
-                        <button onclick="stopPlayback()" class="text-slate-400 hover:text-white p-2 transition-colors"><i class="fa-solid fa-stop text-lg"></i></button>
                     </div>
 
                 </div>
@@ -396,6 +463,11 @@
         document.addEventListener('DOMContentLoaded', () => {
             initWavesurfer();
             setupDragDrop();
+            
+            // Volume Slider Logic
+            document.getElementById('volume').addEventListener('input', (e) => {
+                document.getElementById('vol-val').innerText = e.target.value + '%';
+            });
         });
 
         // --- Accordion Logic ---
@@ -634,7 +706,37 @@
             );
             const source = offlineCtx.createBufferSource();
             source.buffer = audioBuffer;
-            source.connect(offlineCtx.destination);
+            
+            // --- NEW: EFFECTS CHAIN ---
+            
+            // 1. Gain (Volume) Node
+            const gainNode = offlineCtx.createGain();
+            const volumePercent = parseInt(document.getElementById('volume').value) || 100;
+            const gainValue = volumePercent / 100;
+            
+            // Set base volume
+            gainNode.gain.value = gainValue;
+            
+            // 2. Fades
+            const fadeIn = document.getElementById('fade-in').checked;
+            const fadeOut = document.getElementById('fade-out').checked;
+            const fadeDuration = Math.min(3, duration / 2); // Max 3s, or half duration if short
+            
+            if (fadeIn) {
+                gainNode.gain.setValueAtTime(0, 0);
+                gainNode.gain.linearRampToValueAtTime(gainValue, fadeDuration);
+            }
+            
+            if (fadeOut) {
+                // Ensure volume is set before fade out starts
+                gainNode.gain.setValueAtTime(gainValue, duration - fadeDuration);
+                gainNode.gain.linearRampToValueAtTime(0, duration);
+            }
+
+            // Connect graph: Source -> Gain (Effects) -> Destination
+            source.connect(gainNode);
+            gainNode.connect(offlineCtx.destination);
+            
             source.start(0, start, duration);
             return await offlineCtx.startRendering();
         }
