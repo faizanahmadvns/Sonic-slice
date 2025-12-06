@@ -11,16 +11,12 @@
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
-    <!-- Intro.js for Walkthrough -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intro.js/7.2.0/introjs.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/intro.js/7.2.0/intro.min.js"></script>
-
     <!-- Wavesurfer JS -->
     <script src="https://unpkg.com/wavesurfer.js@7/dist/wavesurfer.min.js"></script>
     <script src="https://unpkg.com/wavesurfer.js@7/dist/plugins/regions.min.js"></script>
     <script src="https://unpkg.com/wavesurfer.js@7/dist/plugins/timeline.min.js"></script>
 
-    <!-- LameJS for MP3 Export -->
+    <!-- LameJS for MP3 Export (Loaded in Worker, but kept here for fallback) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js"></script>
 
     <style>
@@ -29,7 +25,6 @@
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
             background-color: #000000;
-            /* Modern Mesh Gradient Background */
             background-image: 
                 radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
                 radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), 
@@ -38,23 +33,14 @@
                 radial-gradient(at 100% 100%, hsla(280,100%,20%,0.5) 0, transparent 50%);
             background-attachment: fixed;
             color: #e2e8f0;
+            -webkit-font-smoothing: antialiased;
         }
 
         /* Custom Scrollbar */
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.05); 
-        }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.2); 
-            border-radius: 10px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(255, 255, 255, 0.4); 
-        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.4); }
 
         /* Glassmorphism Panel */
         .glass-panel {
@@ -64,7 +50,7 @@
             border: 1px solid rgba(255, 255, 255, 0.08);
             border-top: 1px solid rgba(255, 255, 255, 0.15);
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-            transition: all 0.2s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
         .glass-header {
@@ -73,28 +59,21 @@
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        /* Button Gradients */
+        /* Button Gradients & Animations */
         .btn-primary {
             background: linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%);
             box-shadow: 0 4px 15px rgba(217, 70, 239, 0.3);
         }
-        .btn-primary:hover {
-            box-shadow: 0 6px 20px rgba(217, 70, 239, 0.5);
-            transform: translateY(-1px);
-        }
-
-        .btn-secondary {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
+        .btn-primary:active { transform: scale(0.98); }
         
+        /* Loading Spinner */
         .loader {
             border: 3px solid rgba(255, 255, 255, 0.1);
             border-top: 3px solid #d946ef;
             border-radius: 50%;
             width: 24px;
             height: 24px;
-            animation: spin 1s linear infinite;
+            animation: spin 0.8s linear infinite;
             display: inline-block;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -103,13 +82,23 @@
         .drop-active {
             border-color: #d946ef !important;
             background: rgba(217, 70, 239, 0.1) !important;
-            transform: scale(1.02);
+            transform: scale(1.01);
         }
 
-        /* IntroJS Overrides */
-        .introjs-tooltip {
-            background-color: #1e293b !important;
-            color: #fff !important;
+        /* Prevent scroll chaining on mobile during drag */
+        #waveform { touch-action: none; }
+
+        /* Step Styles */
+        .step-active {
+            background: rgba(255, 255, 255, 0.1) !important;
+            border-color: #d946ef !important;
+        }
+        .step-inactive {
+            opacity: 0.7;
+        }
+        .step-inactive:hover {
+            opacity: 1;
+            border-color: rgba(255, 255, 255, 0.2);
         }
     </style>
 </head>
@@ -117,17 +106,20 @@
 
     <!-- Fixed Header -->
     <header class="h-14 md:h-16 glass-header flex items-center justify-between px-4 md:px-8 shrink-0 z-50">
-        <div class="flex items-center gap-2">
+        <a href="#" onclick="location.reload()" class="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-600 to-fuchsia-600 flex items-center justify-center shadow-lg shadow-violet-500/20">
-                <i class="fa-solid fa-wave-square text-white text-sm"></i>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" class="w-5 h-5">
+                    <path d="M13.5 4.06c0-1.336-1.616-2.005-2.56-1.06l-4.5 4.5H4.508c-1.141 0-2.318.664-2.66 1.905A9.76 9.76 0 001.5 12c0 .898.121 1.768.35 2.595.341 1.24 1.518 1.905 2.659 1.905h1.93l4.5 4.5c.945.945 2.561.276 2.561-1.06V4.06zM18.584 5.106a.75.75 0 011.06 0c3.808 3.807 3.808 9.98 0 13.788a.75.75 0 11-1.06-1.06 8.25 8.25 0 000-11.668.75.75 0 010-1.06z" />
+                    <path d="M15.932 7.757a.75.75 0 011.061 0 6 6 0 010 8.486.75.75 0 01-1.06-1.061 4.5 4.5 0 000-6.364.75.75 0 010-1.06z" />
+                </svg>
             </div>
             <h1 class="text-lg md:text-xl font-bold tracking-tight text-white">Sonic<span class="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-fuchsia-400">Slice</span></h1>
-        </div>
+        </a>
         <div class="flex gap-4 text-xs md:text-sm font-medium">
-             <a href="#about-dev" class="text-slate-300 hover:text-white transition-all py-1">About</a>
-            <button onclick="startTour()" class="text-slate-300 hover:text-white transition-all flex items-center gap-1.5 py-1">
+             <a href="#how-to" class="text-slate-300 hover:text-white transition-all py-1 flex items-center gap-1.5">
                 <i class="fa-regular fa-circle-question"></i> <span class="hidden md:inline">Help</span>
-            </button>
+             </a>
+             <a href="#about-dev" class="text-slate-300 hover:text-white transition-all py-1">About</a>
         </div>
     </header>
 
@@ -137,7 +129,7 @@
         <div class="min-h-full flex flex-col">
             
             <!-- VIEW 1: Upload (Visible initially) -->
-            <div id="upload-view" class="flex-1 flex flex-col items-center justify-center p-4">
+            <div id="upload-view" class="flex-1 flex flex-col items-center justify-center p-4 min-h-[60vh]">
                 <div class="text-center p-8 border-2 border-dashed border-slate-600/50 rounded-2xl transition-all duration-300 glass-panel cursor-pointer max-w-lg w-full group hover:border-violet-500/50" id="drop-zone">
                     <input type="file" id="audio-input" accept="audio/*" class="hidden">
                     <div class="w-16 h-16 bg-gradient-to-br from-slate-800 to-slate-900 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner border border-slate-700 group-hover:scale-110 transition-transform duration-300">
@@ -152,7 +144,7 @@
             </div>
 
             <!-- VIEW 2: Editor (Hidden initially) -->
-            <div id="editor-view" class="hidden flex-col w-full max-w-6xl mx-auto px-4 py-4 md:py-6 gap-4">
+            <div id="editor-view" class="hidden flex-col w-full max-w-6xl mx-auto px-4 py-4 md:py-6 gap-4 animate-fade-in">
                 
                 <!-- File Info Bar -->
                 <div class="flex items-center justify-between gap-3 bg-white/5 border border-white/5 rounded-xl p-3">
@@ -167,23 +159,23 @@
                     </div>
                     <div class="flex items-center gap-2 shrink-0">
                          <div class="flex bg-black/20 rounded-lg p-0.5" id="step-zoom">
-                            <button onclick="zoomOut()" class="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-white rounded hover:bg-white/10"><i class="fa-solid fa-minus text-xs"></i></button>
-                            <button onclick="zoomIn()" class="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-white rounded hover:bg-white/10"><i class="fa-solid fa-plus text-xs"></i></button>
+                            <button onclick="zoomOut()" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-white rounded hover:bg-white/10" title="Zoom Out"><i class="fa-solid fa-minus text-xs"></i></button>
+                            <button onclick="zoomIn()" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-white rounded hover:bg-white/10" title="Zoom In"><i class="fa-solid fa-plus text-xs"></i></button>
                         </div>
                         <button onclick="resetApp()" class="text-xs text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 px-3 py-1.5 rounded-lg transition-colors">
-                            Change
+                            <i class="fa-solid fa-xmark sm:hidden"></i> <span class="hidden sm:inline">Change</span>
                         </button>
                     </div>
                 </div>
 
                 <!-- Waveform Area -->
-                <div class="relative glass-panel rounded-xl p-4 border border-white/10" id="step-waveform">
+                <div class="relative glass-panel rounded-xl p-4 border border-white/10 flex flex-col justify-center min-h-[160px] md:min-h-[220px]" id="step-waveform">
                     <div id="waveform" class="w-full"></div>
                     <!-- Loader -->
                     <div id="waveform-loader" class="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-20 hidden rounded-xl">
                         <div class="text-center">
                             <div class="loader mb-2"></div>
-                            <p class="text-xs text-fuchsia-300">Processing...</p>
+                            <p class="text-xs text-fuchsia-300" id="loader-text">Processing...</p>
                         </div>
                     </div>
                 </div>
@@ -214,42 +206,134 @@
                         <button id="download-btn" onclick="handleExport()" class="w-full btn-primary text-white font-bold py-2.5 rounded-lg shadow-lg transition-all flex items-center justify-center gap-2 text-sm">
                             <i class="fa-solid fa-download"></i> Download Selection
                         </button>
-                         <button id="reload-btn" onclick="resetApp()" class="hidden w-full btn-secondary text-slate-300 py-2.5 rounded-lg text-sm">
+                         <button id="reload-btn" onclick="resetApp()" class="hidden w-full btn-secondary text-slate-300 py-2.5 rounded-lg text-sm transition-colors hover:bg-white/10">
                             <i class="fa-solid fa-scissors mr-2"></i> Trim Another
                         </button>
                     </div>
 
-                    <!-- Mobile Playback (Hidden on Desktop, shows in grid on Tablet/Desktop) -->
+                    <!-- Desktop Playback (Hidden on Mobile) -->
                     <div class="hidden md:flex glass-panel p-4 rounded-xl items-center justify-center gap-6" id="step-playback-desktop">
-                        <button onclick="seekToStart()" class="text-slate-400 hover:text-white p-2"><i class="fa-solid fa-backward-step text-lg"></i></button>
-                        <button id="play-btn-desktop" onclick="togglePlay()" class="w-12 h-12 btn-primary text-white rounded-full flex items-center justify-center text-xl shadow-lg hover:scale-105 active:scale-95"><i class="fa-solid fa-play pl-1"></i></button>
-                        <button onclick="stopPlayback()" class="text-slate-400 hover:text-white p-2"><i class="fa-solid fa-stop text-lg"></i></button>
+                        <button onclick="seekToStart()" class="text-slate-400 hover:text-white p-2 transition-colors"><i class="fa-solid fa-backward-step text-lg"></i></button>
+                        <button id="play-btn-desktop" onclick="togglePlay()" class="w-12 h-12 btn-primary text-white rounded-full flex items-center justify-center text-xl shadow-lg hover:scale-105 active:scale-95 transition-transform"><i class="fa-solid fa-play pl-1"></i></button>
+                        <button onclick="stopPlayback()" class="text-slate-400 hover:text-white p-2 transition-colors"><i class="fa-solid fa-stop text-lg"></i></button>
                     </div>
 
                 </div>
             </div>
 
-            <!-- About Section (Footer Style) -->
-            <div id="about-dev" class="w-full mt-8 md:mt-12 py-10 px-4 bg-black/20 border-t border-white/5 backdrop-blur-md">
-                <div class="max-w-4xl mx-auto flex flex-col md:flex-row items-center gap-6 md:gap-10">
-                    <div class="w-20 h-20 md:w-24 md:h-24 shrink-0 rounded-full p-1 bg-gradient-to-br from-violet-500 to-fuchsia-500 shadow-xl">
-                        <img src="https://github.com/faizanahmadvns.png" alt="Faizan Ahmad" class="w-full h-full rounded-full object-cover border-2 border-black">
+            <!-- Separator -->
+            <div class="w-full max-w-6xl mx-auto h-px bg-gradient-to-r from-transparent via-white/20 to-transparent my-16 md:my-24"></div>
+
+            <!-- How To Section (Interactive Accordion) -->
+            <div id="how-to" class="w-full max-w-6xl mx-auto px-4 md:px-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
+                    <!-- Left Side Description -->
+                    <div class="flex flex-col gap-6">
+                        <div class="w-16 h-16 rounded-2xl bg-amber-500/20 flex items-center justify-center border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+                            <i class="fa-solid fa-question text-3xl text-amber-400"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-3xl md:text-4xl font-bold text-white mb-4 leading-tight">How to trim audio <br/><span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-yellow-500">online and fast</span></h2>
+                            <p class="text-slate-400 text-lg leading-relaxed">
+                                No complicated software needed. SonicSlice works right in your browser, keeping your data private and your workflow fast.
+                            </p>
+                        </div>
+                        <a href="#about-dev" class="text-fuchsia-400 hover:text-fuchsia-300 font-medium transition-colors flex items-center gap-2 group">
+                            Need help? Contact Developer <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                        </a>
                     </div>
-                    <div class="text-center md:text-left flex-1">
-                        <h4 class="text-xl font-bold text-white">Faizan Ahmad</h4>
-                        <p class="text-fuchsia-400 text-xs font-bold uppercase tracking-widest mb-2">Full Stack Developer</p>
-                        <p class="text-slate-400 text-sm leading-relaxed mb-4 max-w-xl mx-auto md:mx-0">
-                            Built with performance and privacy in mind. SonicSlice runs entirely in your browser using Web Audio API—no servers, no uploads, just pure client-side editing.
-                        </p>
-                        <div class="flex justify-center md:justify-start gap-3">
-                            <a href="https://github.com/faizanahmadvns" target="_blank" class="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:bg-white hover:text-black transition-colors"><i class="fa-brands fa-github"></i></a>
-                            <a href="https://www.linkedin.com/in/faizan-ahmadvns" target="_blank" class="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:bg-[#0077b5] hover:text-white transition-colors"><i class="fa-brands fa-linkedin-in"></i></a>
-                            <a href="https://x.com/faizan_ahmadvns" target="_blank" class="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:bg-black hover:text-white transition-colors"><i class="fa-brands fa-x-twitter"></i></a>
+
+                    <!-- Right Side Accordion Steps -->
+                    <div class="space-y-4">
+                        <!-- Step 1 -->
+                        <div id="step-1" class="glass-panel p-5 rounded-2xl border-l-4 step-active cursor-pointer transition-all duration-300 group" onclick="toggleStep(1)">
+                            <div class="flex gap-5 relative z-10 items-start">
+                                <span class="text-fuchsia-400 font-bold uppercase text-xs tracking-widest mt-1 shrink-0">STEP 1</span>
+                                <div class="flex-1">
+                                    <h3 class="text-lg md:text-xl font-bold text-white mb-1">Add an audio file</h3>
+                                    <div id="step-1-content" class="overflow-hidden transition-all duration-300 max-h-40 opacity-100 mt-2">
+                                        <p class="text-slate-400 text-sm leading-relaxed">
+                                            Choose a file from any device: PC, Mac, Android or iPhone. Simply drag & drop your file onto the upload area to begin.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="absolute top-2 right-2 opacity-20">
+                                    <i class="fa-solid fa-file-audio text-4xl text-fuchsia-500"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 2 -->
+                        <div id="step-2" class="glass-panel p-5 rounded-2xl border-l-4 border-transparent border border-white/5 step-inactive cursor-pointer transition-all duration-300 group" onclick="toggleStep(2)">
+                            <div class="flex gap-5 relative z-10 items-start">
+                                <span class="text-slate-500 font-bold uppercase text-xs tracking-widest mt-1 shrink-0 group-hover:text-slate-400">STEP 2</span>
+                                <div class="flex-1">
+                                    <h3 class="text-lg md:text-xl font-bold text-slate-200 group-hover:text-white mb-1">Cut uploaded song</h3>
+                                    <div id="step-2-content" class="overflow-hidden transition-all duration-300 max-h-0 opacity-0">
+                                        <p class="text-slate-400 text-sm leading-relaxed mt-2">
+                                            Use the waveform visualization to select your desired section. Drag the handles or use "Auto-Detect" to find the best part.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 3 -->
+                        <div id="step-3" class="glass-panel p-5 rounded-2xl border-l-4 border-transparent border border-white/5 step-inactive cursor-pointer transition-all duration-300 group" onclick="toggleStep(3)">
+                            <div class="flex gap-5 relative z-10 items-start">
+                                <span class="text-slate-500 font-bold uppercase text-xs tracking-widest mt-1 shrink-0 group-hover:text-slate-400">STEP 3</span>
+                                <div class="flex-1">
+                                    <h3 class="text-lg md:text-xl font-bold text-slate-200 group-hover:text-white mb-1">Download the music</h3>
+                                    <div id="step-3-content" class="overflow-hidden transition-all duration-300 max-h-0 opacity-0">
+                                        <p class="text-slate-400 text-sm leading-relaxed mt-2">
+                                            Choose your format (WAV for quality, MP3 for size) and click download. Your file is processed instantly on your device.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="text-center text-[10px] text-slate-600 mt-8">
-                     Made with <span class="text-fuchsia-500">❤️</span> in India
+            </div>
+
+            <!-- Separator -->
+            <div class="w-full max-w-6xl mx-auto h-px bg-gradient-to-r from-transparent via-white/20 to-transparent my-16 md:my-24"></div>
+
+            <!-- About Developer Section -->
+            <div id="about-dev" class="w-full pb-20 px-4 md:px-6 relative z-10">
+                <div class="max-w-4xl mx-auto">
+                    <div class="flex flex-col md:flex-row items-center gap-8 md:gap-14">
+                        
+                        <!-- Profile Photo -->
+                        <div class="w-24 h-24 md:w-32 md:h-32 flex-shrink-0 relative group z-10">
+                            <div class="absolute -inset-1 bg-gradient-to-br from-violet-600 to-fuchsia-600 rounded-full blur opacity-40 group-hover:opacity-100 transition duration-500"></div>
+                            <img src="https://github.com/faizanahmadvns.png" 
+                                 alt="Faizan Ahmad" 
+                                 class="w-full h-full rounded-full object-cover border-2 border-slate-800 group-hover:border-fuchsia-500/50 relative z-10 shadow-2xl transition-all duration-500">
+                        </div>
+                        
+                        <div class="text-center md:text-left relative z-10 flex-1">
+                            <h4 class="text-2xl font-bold text-white mb-1">Faizan Ahmad</h4>
+                            <p class="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-fuchsia-400 text-xs font-bold uppercase tracking-widest mb-4">Full Stack Developer</p>
+                            <p class="text-slate-400 leading-relaxed mb-6 text-sm">
+                                Built for speed and privacy. SonicSlice processes audio entirely in your browser using WebAssembly and Web Workers—ensuring your files never leave your device.
+                            </p>
+                            <div class="flex justify-center md:justify-start gap-4">
+                                <a href="https://github.com/faizanahmadvns" target="_blank" class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:bg-white hover:text-black hover:scale-110 transition-all border border-white/5">
+                                    <i class="fa-brands fa-github text-lg"></i>
+                                </a>
+                                <a href="https://www.linkedin.com/in/faizan-ahmadvns" target="_blank" class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:bg-[#0077b5] hover:text-white hover:scale-110 transition-all border border-white/5">
+                                    <i class="fa-brands fa-linkedin-in text-lg"></i>
+                                </a>
+                                <a href="https://x.com/faizan_ahmadvns" target="_blank" class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-slate-400 hover:bg-black hover:text-white hover:scale-110 transition-all border border-white/5">
+                                    <i class="fa-brands fa-x-twitter text-lg"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-10 text-center text-[10px] text-slate-600">
+                    Made with <span class="text-fuchsia-500 animate-pulse">❤️</span> in India
                 </div>
             </div>
 
@@ -258,10 +342,10 @@
 
     <!-- Mobile Sticky Player (Bottom) -->
     <div id="mobile-player" class="md:hidden fixed bottom-0 inset-x-0 glass-header border-t border-white/10 p-3 flex items-center justify-between gap-4 z-40 transition-transform duration-300 translate-y-full">
-        <div class="flex items-center gap-4 mx-auto">
-            <button onclick="seekToStart()" class="text-slate-400 p-2"><i class="fa-solid fa-backward-step"></i></button>
-            <button id="play-btn-mobile" onclick="togglePlay()" class="w-12 h-12 btn-primary text-white rounded-full flex items-center justify-center text-lg shadow-lg"><i class="fa-solid fa-play pl-1"></i></button>
-            <button onclick="stopPlayback()" class="text-slate-400 p-2"><i class="fa-solid fa-stop"></i></button>
+        <div class="flex items-center gap-6 mx-auto">
+            <button onclick="seekToStart()" class="text-slate-400 p-2 active:text-white"><i class="fa-solid fa-backward-step"></i></button>
+            <button id="play-btn-mobile" onclick="togglePlay()" class="w-12 h-12 btn-primary text-white rounded-full flex items-center justify-center text-lg shadow-lg active:scale-95 transition-transform"><i class="fa-solid fa-play pl-1"></i></button>
+            <button onclick="stopPlayback()" class="text-slate-400 p-2 active:text-white"><i class="fa-solid fa-stop"></i></button>
         </div>
     </div>
 
@@ -269,6 +353,38 @@
     <a id="download-link" style="display: none"></a>
 
     <script>
+        // --- Inline Worker Code for MP3 Encoding ---
+        // This moves heavy processing off the main thread
+        const mp3WorkerCode = `
+            importScripts('https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js');
+            
+            self.onmessage = function(e) {
+                const { channels, sampleRate, left, right } = e.data;
+                const mp3Encoder = new lamejs.Mp3Encoder(channels, sampleRate, 128);
+                const sampleBlockSize = 1152;
+                const mp3Data = [];
+                
+                // Process in chunks
+                for (let i = 0; i < left.length; i += sampleBlockSize) {
+                    const lC = left.subarray(i, i + sampleBlockSize);
+                    const rC = right ? right.subarray(i, i + sampleBlockSize) : undefined;
+                    
+                    let mp3buf;
+                    if (channels === 1) {
+                        mp3buf = mp3Encoder.encodeBuffer(lC);
+                    } else {
+                        mp3buf = mp3Encoder.encodeBuffer(lC, rC);
+                    }
+                    if (mp3buf.length > 0) mp3Data.push(mp3buf);
+                }
+                
+                const mp3buf = mp3Encoder.flush();
+                if (mp3buf.length > 0) mp3Data.push(mp3buf);
+                
+                self.postMessage(mp3Data);
+            };
+        `;
+
         // --- State Management ---
         let wavesurfer;
         let wsRegions;
@@ -280,12 +396,57 @@
         document.addEventListener('DOMContentLoaded', () => {
             initWavesurfer();
             setupDragDrop();
-            
-            // Check if user has seen tour
-            const hasSeenTour = localStorage.getItem('sonicSliceTourSeen');
         });
 
+        // --- Accordion Logic ---
+        function toggleStep(stepNum) {
+            const steps = [1, 2, 3];
+            steps.forEach(num => {
+                const card = document.getElementById(`step-${num}`);
+                const content = document.getElementById(`step-${num}-content`);
+                const label = card.querySelector('span'); // The "STEP X" label
+                const title = card.querySelector('h3');
+
+                if (num === stepNum) {
+                    // Activate this step
+                    card.classList.remove('step-inactive', 'border-transparent');
+                    card.classList.add('step-active', 'border-l-4');
+                    
+                    // Show content
+                    content.style.maxHeight = '160px'; // Approx height
+                    content.classList.remove('opacity-0');
+                    content.classList.add('opacity-100', 'mt-2');
+                    
+                    // Styling text
+                    label.classList.remove('text-slate-500');
+                    label.classList.add('text-fuchsia-400');
+                    title.classList.remove('text-slate-200');
+                    title.classList.add('text-white');
+                } else {
+                    // Deactivate others
+                    card.classList.remove('step-active', 'border-l-4');
+                    card.classList.add('step-inactive', 'border-transparent');
+                    
+                    // Hide content
+                    content.style.maxHeight = '0';
+                    content.classList.remove('opacity-100', 'mt-2');
+                    content.classList.add('opacity-0');
+                    
+                    // Styling text
+                    label.classList.remove('text-fuchsia-400');
+                    label.classList.add('text-slate-500');
+                    title.classList.remove('text-white');
+                    title.classList.add('text-slate-200');
+                }
+            });
+        }
+
         function initWavesurfer() {
+            // Destroy existing instance if present
+            if (wavesurfer) {
+                wavesurfer.destroy();
+            }
+
             wavesurfer = WaveSurfer.create({
                 container: '#waveform',
                 waveColor: 'rgba(139, 92, 246, 0.4)',
@@ -294,25 +455,32 @@
                 barWidth: 2,
                 barRadius: 10,
                 cursorWidth: 2,
-                height: window.innerWidth < 768 ? 120 : 160, // Responsive Height
+                // Adaptive height
+                height: window.innerWidth < 768 ? 120 : 160, 
                 barGap: 3,
                 responsive: true,
-                backend: 'WebAudio', 
+                backend: 'WebAudio',
+                // Smoother scrolling
+                autoScroll: true,
+                autoCenter: true,
             });
 
             wsRegions = wavesurfer.registerPlugin(WaveSurfer.Regions.create());
             
-            // Only add timeline on larger screens to save space on mobile
-            if(window.innerWidth > 600) {
-                wavesurfer.registerPlugin(WaveSurfer.Timeline.create({
-                    container: '#waveform',
-                    height: 15,
-                    primaryColor: '#64748b',
-                    secondaryColor: '#475569',
-                    primaryFontColor: '#94a3b8',
-                    style: { fontSize: '10px' }
-                }));
-            }
+            // ENABLED FOR ALL SCREENS NOW, adjusted styling for mobile
+            wavesurfer.registerPlugin(WaveSurfer.Timeline.create({
+                container: '#waveform',
+                height: 20,
+                primaryColor: '#94a3b8',
+                secondaryColor: '#475569',
+                primaryFontColor: '#cbd5e1',
+                secondaryFontColor: '#94a3b8',
+                timeInterval: window.innerWidth < 768 ? 5 : undefined, // Less cluttered on mobile
+                style: {
+                    fontSize: '10px',
+                    paddingTop: '5px'
+                }
+            }));
 
             wsRegions.on('region-updated', (region) => {
                 activeRegion = region;
@@ -343,6 +511,10 @@
         }
 
         function loadAudio(file) {
+            // Clean previous state
+            if(activeRegion) activeRegion = null;
+            if(wsRegions) wsRegions.clearRegions();
+
             originalFile = file;
             const reader = new FileReader();
             
@@ -355,6 +527,7 @@
             document.getElementById('mobile-player').classList.remove('translate-y-full');
             
             document.getElementById('waveform-loader').classList.remove('hidden');
+            document.getElementById('loader-text').innerText = "Analyzing Waveform...";
             document.getElementById('filename').innerText = file.name;
 
             reader.onload = function(e) {
@@ -370,8 +543,6 @@
                     const start = buffer.duration * 0.1;
                     const end = Math.min(start + 15, buffer.duration * 0.9);
                     addRegion(start, end);
-
-                    if (!localStorage.getItem('sonicSliceTourSeen')) setTimeout(startTour, 1000);
                 });
             };
             reader.readAsArrayBuffer(file);
@@ -385,9 +556,10 @@
                 color: 'rgba(217, 70, 239, 0.2)',
                 drag: true,
                 resize: true,
+                // Enhanced handles for mobile touch
                 handleStyle: {
-                    left: { width: '8px', backgroundColor: '#fff', borderRadius: '4px', cursor: 'ew-resize', opacity: '0.8' },
-                    right: { width: '8px', backgroundColor: '#fff', borderRadius: '4px', cursor: 'ew-resize', opacity: '0.8' }
+                    left: { width: '12px', backgroundColor: '#fff', borderRadius: '4px', cursor: 'ew-resize', opacity: '0.8' },
+                    right: { width: '12px', backgroundColor: '#fff', borderRadius: '4px', cursor: 'ew-resize', opacity: '0.8' }
                 }
             });
             updateTimeDisplay(start, end);
@@ -423,18 +595,26 @@
             const btn = document.getElementById('download-btn');
             const originalText = btn.innerHTML;
             btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i> Processing';
+            btn.innerHTML = '<div class="loader w-4 h-4 border-2 mr-2"></div> Encoding...';
 
             try {
+                // 1. Cut the audio buffer
                 const renderedBuffer = await renderOfflineBuffer();
-                if (format === 'wav') downloadBlob(bufferToWave(renderedBuffer, renderedBuffer.length), 'wav');
-                else if (format === 'mp3') downloadBlob(bufferToMp3(renderedBuffer), 'mp3');
+
+                if (format === 'wav') {
+                    const blob = bufferToWave(renderedBuffer, renderedBuffer.length);
+                    downloadBlob(blob, 'wav');
+                } else if (format === 'mp3') {
+                    // Use Worker for non-blocking UI
+                    const blob = await bufferToMp3Worker(renderedBuffer);
+                    downloadBlob(blob, 'mp3');
+                }
 
                 document.getElementById('download-btn').classList.add('hidden');
                 document.getElementById('reload-btn').classList.remove('hidden');
             } catch (error) {
                 console.error(error);
-                alert("Export failed.");
+                alert("Export failed. Please try again.");
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = originalText;
@@ -444,7 +624,14 @@
         async function renderOfflineBuffer() {
             const start = activeRegion.start;
             const duration = activeRegion.end - start;
-            const offlineCtx = new OfflineAudioContext(audioBuffer.numberOfChannels, duration * audioBuffer.sampleRate, audioBuffer.sampleRate);
+            // Validate limits
+            if(duration <= 0) throw new Error("Invalid duration");
+            
+            const offlineCtx = new OfflineAudioContext(
+                audioBuffer.numberOfChannels,
+                duration * audioBuffer.sampleRate,
+                audioBuffer.sampleRate
+            );
             const source = offlineCtx.createBufferSource();
             source.buffer = audioBuffer;
             source.connect(offlineCtx.destination);
@@ -456,8 +643,10 @@
             const url = URL.createObjectURL(blob);
             const link = document.getElementById('download-link');
             link.href = url;
-            link.download = `SonicSlice_cut.${ext}`;
+            link.download = `SonicSlice_cut_${Date.now()}.${ext}`;
             link.click();
+            // Cleanup
+            setTimeout(() => URL.revokeObjectURL(url), 100);
         }
 
         function bufferToWave(abuffer, len) {
@@ -477,63 +666,86 @@
             function setUint32(data) { view.setUint32(pos, data, true); pos += 4; }
         }
 
-        function bufferToMp3(buffer) {
-            const channels = buffer.numberOfChannels, sampleRate = buffer.sampleRate;
-            const mp3Encoder = new lamejs.Mp3Encoder(channels, sampleRate, 128);
-            const right = new Int16Array(buffer.length), left = new Int16Array(buffer.length);
-            for (let i = 0; i < buffer.length; i++) {
-                let s = Math.max(-1, Math.min(1, buffer.getChannelData(0)[i])); left[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
-                if (channels > 1) { s = Math.max(-1, Math.min(1, buffer.getChannelData(1)[i])); right[i] = s < 0 ? s * 0x8000 : s * 0x7FFF; } else right[i] = left[i];
-            }
-            const sampleBlockSize = 1152, mp3Data = [];
-            for (let i = 0; i < left.length; i += sampleBlockSize) {
-                const lC = left.subarray(i, i + sampleBlockSize), rC = right.subarray(i, i + sampleBlockSize);
-                let mp3buf = (channels === 1) ? mp3Encoder.encodeBuffer(lC) : mp3Encoder.encodeBuffer(lC, rC);
-                if (mp3buf.length > 0) mp3Data.push(mp3buf);
-            }
-            const mp3buf = mp3Encoder.flush();
-            if (mp3buf.length > 0) mp3Data.push(mp3buf);
-            return new Blob(mp3Data, { type: 'audio/mp3' });
+        // --- PRODUCTION UPGRADE: Web Worker Wrapper ---
+        function bufferToMp3Worker(buffer) {
+            return new Promise((resolve, reject) => {
+                const channels = buffer.numberOfChannels;
+                const sampleRate = buffer.sampleRate;
+                const left = buffer.getChannelData(0);
+                // Int16 conversion happens inside worker to save main thread
+                // We send raw Float32 data but converting it here is faster for transfer
+                // Let's do simple conversion here to prepare for lamejs which expects Int16
+                
+                const len = left.length;
+                const leftI16 = new Int16Array(len);
+                const rightI16 = channels > 1 ? new Int16Array(len) : undefined;
+                
+                for (let i = 0; i < len; i++) {
+                    let s = Math.max(-1, Math.min(1, left[i]));
+                    leftI16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+                    
+                    if (channels > 1) {
+                        let s2 = Math.max(-1, Math.min(1, buffer.getChannelData(1)[i]));
+                        rightI16[i] = s2 < 0 ? s2 * 0x8000 : s2 * 0x7FFF;
+                    }
+                }
+
+                // Create Blob for Worker
+                const blob = new Blob([mp3WorkerCode], { type: "application/javascript" });
+                const worker = new Worker(URL.createObjectURL(blob));
+
+                worker.onmessage = function(e) {
+                    resolve(new Blob(e.data, { type: 'audio/mp3' }));
+                    worker.terminate(); // Cleanup
+                };
+
+                worker.onerror = function(e) {
+                    reject(e);
+                    worker.terminate();
+                };
+
+                // Send data
+                worker.postMessage({
+                    channels,
+                    sampleRate,
+                    left: leftI16,
+                    right: rightI16
+                });
+            });
         }
 
+        // --- Interaction Handlers ---
         function togglePlay() {
+            if (!wavesurfer) return;
             if (wavesurfer.isPlaying()) wavesurfer.pause();
             else {
                 if(activeRegion && (wavesurfer.getCurrentTime() < activeRegion.start || wavesurfer.getCurrentTime() >= activeRegion.end)) activeRegion.play();
                 else wavesurfer.play();
             }
         }
-        function stopPlayback() { wavesurfer.stop(); if(activeRegion) wavesurfer.setTime(activeRegion.start); }
+        function stopPlayback() { 
+            if(wavesurfer) { wavesurfer.stop(); if(activeRegion) wavesurfer.setTime(activeRegion.start); }
+        }
         function updatePlayButton(isPlaying) {
             const icon = isPlaying ? '<i class="fa-solid fa-pause"></i>' : '<i class="fa-solid fa-play pl-1"></i>';
             document.getElementById('play-btn-desktop').innerHTML = icon;
             document.getElementById('play-btn-mobile').innerHTML = icon;
         }
-        function zoomIn() { wavesurfer.zoom((wavesurfer.options.minPxPerSec || 50) * 1.5); }
-        function zoomOut() { wavesurfer.zoom(Math.max(20, (wavesurfer.options.minPxPerSec || 50) * 0.75)); }
-        function seekToStart() { if(activeRegion) wavesurfer.setTime(activeRegion.start); else wavesurfer.setTime(0); }
+        function zoomIn() { if(wavesurfer) wavesurfer.zoom((wavesurfer.options.minPxPerSec || 50) * 1.5); }
+        function zoomOut() { if(wavesurfer) wavesurfer.zoom(Math.max(20, (wavesurfer.options.minPxPerSec || 50) * 0.75)); }
+        function seekToStart() { if(wavesurfer) { if(activeRegion) wavesurfer.setTime(activeRegion.start); else wavesurfer.setTime(0); }}
+        
         function updateTimeDisplay(start, end) {
             document.getElementById('start-time').innerText = formatTime(start);
             document.getElementById('end-time').innerText = formatTime(end);
         }
+        
         function formatTime(seconds) {
-            const m = Math.floor(seconds / 60), s = Math.floor(seconds % 60), ms = Math.floor((seconds % 1) * 100);
+            if(!seconds && seconds !== 0) return "00:00.00";
+            const m = Math.floor(seconds / 60);
+            const s = Math.floor(seconds % 60);
+            const ms = Math.floor((seconds % 1) * 100);
             return `${m}:${s.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
-        }
-        function startTour() {
-            const isEditorVisible = !document.getElementById('editor-view').classList.contains('hidden');
-            const steps = [{ title: "Welcome", intro: "A fast, private audio cutter." }];
-            if (isEditorVisible) {
-                steps.push(
-                    { element: '#step-waveform', title: "Trim", intro: "Drag the white handles." },
-                    { element: '#step-smart', title: "Smart Trim", intro: "Auto-detects the best part." },
-                    { element: '#step-export', title: "Download", intro: "Save as MP3 or WAV." }
-                );
-            } else {
-                steps.push({ element: '#drop-zone', title: "Upload", intro: "Drop your audio file here." });
-            }
-            steps.push({ element: '#about-dev', title: "About", intro: "Meet the dev." });
-            introJs().setOptions({ steps: steps, showProgress: true }).start();
         }
     </script>
 </body>
