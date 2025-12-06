@@ -68,6 +68,12 @@
             box-shadow: 0 4px 15px rgba(217, 70, 239, 0.3);
         }
         .btn-primary:active { transform: scale(0.98); }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #f43f5e 0%, #fb923c 100%);
+            box-shadow: 0 4px 15px rgba(244, 63, 94, 0.3);
+        }
+        .btn-danger:active { transform: scale(0.98); }
         
         /* Loading Spinner */
         .loader {
@@ -227,29 +233,45 @@
                 <!-- Action Grid -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     
-                    <!-- 1. Playback Controls (Desktop) -->
-                    <div class="hidden md:flex glass-panel p-4 rounded-xl items-center justify-center gap-6" id="step-playback-desktop">
-                        <button onclick="seekToStart()" class="text-slate-400 hover:text-white p-2 transition-colors"><i class="fa-solid fa-backward-step text-lg"></i></button>
-                        <button id="play-btn-desktop" onclick="togglePlay()" class="w-12 h-12 btn-primary text-white rounded-full flex items-center justify-center text-xl shadow-lg hover:scale-105 active:scale-95 transition-transform"><i class="fa-solid fa-play pl-1"></i></button>
-                        <button onclick="stopPlayback()" class="text-slate-400 hover:text-white p-2 transition-colors"><i class="fa-solid fa-stop text-lg"></i></button>
+                    <!-- 1. Precise Timing -->
+                    <div class="glass-panel p-4 rounded-xl flex flex-col gap-3" id="step-timing">
+                        <div class="flex justify-between items-center">
+                            <label class="text-[10px] uppercase text-slate-500 font-bold tracking-wider">Precise Timing</label>
+                            <span class="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 rounded">NEW</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="text-[10px] text-slate-400 block mb-1">Start</label>
+                                <input type="text" id="manual-start" class="w-full bg-black/30 border border-white/10 text-white text-xs font-mono rounded-lg px-2 py-1.5 focus:outline-none focus:border-fuchsia-500" placeholder="00:00.00">
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-slate-400 block mb-1">End</label>
+                                <input type="text" id="manual-end" class="w-full bg-black/30 border border-white/10 text-white text-xs font-mono rounded-lg px-2 py-1.5 focus:outline-none focus:border-fuchsia-500" placeholder="00:00.00">
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center bg-white/5 rounded-lg px-2 py-1.5">
+                            <span class="text-[10px] text-slate-400">Duration:</span>
+                            <span id="selection-duration" class="text-xs font-bold text-fuchsia-400 font-mono">00:00.00</span>
+                        </div>
                     </div>
 
-                    <!-- 2. Smart Trim -->
-                    <div class="glass-panel p-4 rounded-xl flex flex-col justify-center gap-2" id="step-smart">
-                        <div class="flex justify-between text-[10px] text-slate-400 font-mono bg-black/20 p-2 rounded-lg">
-                            <span>Start: <span id="start-time" class="text-violet-300">0.00s</span></span>
-                            <span>End: <span id="end-time" class="text-fuchsia-300">0.00s</span></span>
+                    <!-- 2. Smart Trim & Playback -->
+                    <div class="glass-panel p-4 rounded-xl flex flex-col justify-center gap-4" id="step-smart">
+                        <!-- Desktop Playback -->
+                        <div class="hidden md:flex items-center justify-center gap-6">
+                            <button onclick="seekToStart()" class="text-slate-400 hover:text-white p-2 transition-colors"><i class="fa-solid fa-backward-step text-lg"></i></button>
+                            <button id="play-btn-desktop" onclick="togglePlay()" class="w-12 h-12 btn-primary text-white rounded-full flex items-center justify-center text-xl shadow-lg hover:scale-105 active:scale-95 transition-transform"><i class="fa-solid fa-play pl-1"></i></button>
+                            <button onclick="stopPlayback()" class="text-slate-400 hover:text-white p-2 transition-colors"><i class="fa-solid fa-stop text-lg"></i></button>
                         </div>
                         <button onclick="autoTrimTrend()" class="w-full py-2.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-200 text-xs font-medium transition-all flex items-center justify-center gap-2">
                             <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-Detect Best Part
                         </button>
                     </div>
 
-                    <!-- 3. New Effects Panel -->
+                    <!-- 3. Effects Panel -->
                     <div class="glass-panel p-4 rounded-xl flex flex-col gap-3" id="step-effects">
                         <div class="flex justify-between items-center">
                             <label class="text-[10px] uppercase text-slate-500 font-bold tracking-wider">Effects</label>
-                            <span class="text-[10px] text-fuchsia-400 bg-fuchsia-500/10 px-1.5 rounded">NEW</span>
                         </div>
                         <div class="flex gap-2">
                             <label class="flex-1 flex items-center justify-between bg-black/20 p-2 rounded-lg cursor-pointer hover:bg-black/30 transition-colors">
@@ -268,7 +290,7 @@
                         </div>
                     </div>
 
-                    <!-- 4. Export Controls -->
+                    <!-- 4. Export Controls (UPDATED) -->
                     <div class="glass-panel p-4 rounded-xl flex flex-col gap-2" id="step-export">
                         <div class="flex items-center gap-2">
                             <label class="text-[10px] uppercase text-slate-500 font-bold shrink-0">Format</label>
@@ -277,11 +299,14 @@
                                 <option value="mp3" class="bg-slate-900">MP3 (Compressed)</option>
                             </select>
                         </div>
-                        <button id="download-btn" onclick="handleExport()" class="w-full btn-primary text-white font-bold py-2.5 rounded-lg shadow-lg transition-all flex items-center justify-center gap-2 text-sm">
-                            <i class="fa-solid fa-download"></i> Download Selection
+                        <button id="download-btn" onclick="handleExport('trim')" class="w-full btn-primary text-white font-bold py-2.5 rounded-lg shadow-lg transition-all flex items-center justify-center gap-2 text-xs">
+                            <i class="fa-solid fa-download"></i> Download Selected
+                        </button>
+                        <button id="cut-btn" onclick="handleExport('cut')" class="w-full btn-danger text-white font-bold py-2.5 rounded-lg shadow-lg transition-all flex items-center justify-center gap-2 text-xs">
+                            <i class="fa-solid fa-scissors"></i> Cut Segment & Keep Rest
                         </button>
                          <button id="reload-btn" onclick="resetApp()" class="hidden w-full btn-secondary text-slate-300 py-2.5 rounded-lg text-sm transition-colors hover:bg-white/10">
-                            <i class="fa-solid fa-scissors mr-2"></i> Trim Another
+                            <i class="fa-solid fa-rotate-right mr-2"></i> Edit Another
                         </button>
                     </div>
 
@@ -291,7 +316,7 @@
             <!-- Separator -->
             <div class="w-full max-w-6xl mx-auto h-px bg-gradient-to-r from-transparent via-white/20 to-transparent my-16 md:my-24"></div>
 
-            <!-- How To Section (Interactive Accordion) -->
+            <!-- How To Section -->
             <div id="how-to" class="w-full max-w-6xl mx-auto px-4 md:px-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
                     <!-- Left Side Description -->
@@ -468,7 +493,29 @@
             document.getElementById('volume').addEventListener('input', (e) => {
                 document.getElementById('vol-val').innerText = e.target.value + '%';
             });
+
+            // Manual Input Listeners
+            const startInput = document.getElementById('manual-start');
+            const endInput = document.getElementById('manual-end');
+
+            startInput.addEventListener('change', () => updateRegionFromInputs());
+            endInput.addEventListener('change', () => updateRegionFromInputs());
         });
+
+        function updateRegionFromInputs() {
+            if(!activeRegion) return;
+            const startStr = document.getElementById('manual-start').value;
+            const endStr = document.getElementById('manual-end').value;
+            
+            const start = parseTime(startStr);
+            const end = parseTime(endStr);
+
+            if(start !== null && end !== null && end > start && end <= audioBuffer.duration) {
+                activeRegion.setOptions({ start, end });
+                activeRegion.play();
+                updateTimeDisplay(start, end);
+            }
+        }
 
         // --- Accordion Logic ---
         function toggleStep(stepNum) {
@@ -476,35 +523,25 @@
             steps.forEach(num => {
                 const card = document.getElementById(`step-${num}`);
                 const content = document.getElementById(`step-${num}-content`);
-                const label = card.querySelector('span'); // The "STEP X" label
+                const label = card.querySelector('span'); 
                 const title = card.querySelector('h3');
 
                 if (num === stepNum) {
-                    // Activate this step
                     card.classList.remove('step-inactive', 'border-transparent');
                     card.classList.add('step-active', 'border-l-4');
-                    
-                    // Show content
-                    content.style.maxHeight = '160px'; // Approx height
+                    content.style.maxHeight = '160px'; 
                     content.classList.remove('opacity-0');
                     content.classList.add('opacity-100', 'mt-2');
-                    
-                    // Styling text
                     label.classList.remove('text-slate-500');
                     label.classList.add('text-fuchsia-400');
                     title.classList.remove('text-slate-200');
                     title.classList.add('text-white');
                 } else {
-                    // Deactivate others
                     card.classList.remove('step-active', 'border-l-4');
                     card.classList.add('step-inactive', 'border-transparent');
-                    
-                    // Hide content
                     content.style.maxHeight = '0';
                     content.classList.remove('opacity-100', 'mt-2');
                     content.classList.add('opacity-0');
-                    
-                    // Styling text
                     label.classList.remove('text-fuchsia-400');
                     label.classList.add('text-slate-500');
                     title.classList.remove('text-white');
@@ -514,32 +551,27 @@
         }
 
         function initWavesurfer() {
-            // Destroy existing instance if present
-            if (wavesurfer) {
-                wavesurfer.destroy();
-            }
+            if (wavesurfer) wavesurfer.destroy();
 
             wavesurfer = WaveSurfer.create({
                 container: '#waveform',
-                waveColor: 'rgba(139, 92, 246, 0.4)',
-                progressColor: '#d946ef',
+                waveColor: '#475569', // Slate 600 (Greyed out look)
+                progressColor: '#475569', // Same as wave so progress doesn't distract outside selection
                 cursorColor: '#ffffff',
                 barWidth: 2,
                 barRadius: 10,
                 cursorWidth: 2,
-                // Adaptive height
                 height: window.innerWidth < 768 ? 120 : 160, 
                 barGap: 3,
                 responsive: true,
                 backend: 'WebAudio',
-                // Smoother scrolling
                 autoScroll: true,
                 autoCenter: true,
             });
 
             wsRegions = wavesurfer.registerPlugin(WaveSurfer.Regions.create());
             
-            // ENABLED FOR ALL SCREENS NOW, adjusted styling for mobile
+            // Minute-based Timeline config
             wavesurfer.registerPlugin(WaveSurfer.Timeline.create({
                 container: '#waveform',
                 height: 20,
@@ -547,7 +579,12 @@
                 secondaryColor: '#475569',
                 primaryFontColor: '#cbd5e1',
                 secondaryFontColor: '#94a3b8',
-                timeInterval: window.innerWidth < 768 ? 5 : undefined, // Less cluttered on mobile
+                timeInterval: window.innerWidth < 768 ? 5 : 10, 
+                formatTimeCallback: (seconds) => {
+                    const m = Math.floor(seconds / 60);
+                    const s = Math.floor(seconds % 60);
+                    return `${m}:${s.toString().padStart(2, '0')}`;
+                },
                 style: {
                     fontSize: '10px',
                     paddingTop: '5px'
@@ -583,7 +620,6 @@
         }
 
         function loadAudio(file) {
-            // Clean previous state
             if(activeRegion) activeRegion = null;
             if(wsRegions) wsRegions.clearRegions();
 
@@ -594,10 +630,7 @@
             const editorView = document.getElementById('editor-view');
             editorView.classList.remove('hidden');
             editorView.classList.add('flex');
-            
-            // Show Mobile Player
             document.getElementById('mobile-player').classList.remove('translate-y-full');
-            
             document.getElementById('waveform-loader').classList.remove('hidden');
             document.getElementById('loader-text').innerText = "Analyzing Waveform...";
             document.getElementById('filename').innerText = file.name;
@@ -625,13 +658,29 @@
             activeRegion = wsRegions.addRegion({
                 start: start,
                 end: end,
-                color: 'rgba(217, 70, 239, 0.2)',
+                minLength: 0.1, 
+                color: 'rgba(217, 70, 239, 0.4)', 
                 drag: true,
                 resize: true,
-                // Enhanced handles for mobile touch
                 handleStyle: {
-                    left: { width: '12px', backgroundColor: '#fff', borderRadius: '4px', cursor: 'ew-resize', opacity: '0.8' },
-                    right: { width: '12px', backgroundColor: '#fff', borderRadius: '4px', cursor: 'ew-resize', opacity: '0.8' }
+                    left: {
+                        width: '4px',
+                        backgroundColor: '#fff',
+                        borderRadius: '4px 0 0 4px',
+                        cursor: 'ew-resize',
+                        opacity: '1',
+                        height: '100%',
+                        border: '1px solid rgba(0,0,0,0.2)'
+                    },
+                    right: {
+                        width: '4px',
+                        backgroundColor: '#fff',
+                        borderRadius: '0 4px 4px 0',
+                        cursor: 'ew-resize',
+                        opacity: '1',
+                        height: '100%',
+                        border: '1px solid rgba(0,0,0,0.2)'
+                    }
                 }
             });
             updateTimeDisplay(start, end);
@@ -661,32 +710,37 @@
             activeRegion.play();
         }
 
-        async function handleExport() {
+        async function handleExport(mode) {
             if (!audioBuffer || !activeRegion) return;
             const format = document.getElementById('export-format').value;
-            const btn = document.getElementById('download-btn');
+            const btn = document.getElementById(mode === 'cut' ? 'cut-btn' : 'download-btn');
             const originalText = btn.innerHTML;
             btn.disabled = true;
-            btn.innerHTML = '<div class="loader w-4 h-4 border-2 mr-2"></div> Encoding...';
+            btn.innerHTML = '<div class="loader w-4 h-4 border-2 mr-2"></div> Processing...';
 
             try {
-                // 1. Cut the audio buffer
-                const renderedBuffer = await renderOfflineBuffer();
+                // Determine duration based on mode
+                let renderedBuffer;
+                if(mode === 'cut') {
+                    renderedBuffer = await renderCutBuffer(); // Custom logic for cutting
+                } else {
+                    renderedBuffer = await renderOfflineBuffer(); // Standard logic for trim
+                }
 
                 if (format === 'wav') {
                     const blob = bufferToWave(renderedBuffer, renderedBuffer.length);
                     downloadBlob(blob, 'wav');
                 } else if (format === 'mp3') {
-                    // Use Worker for non-blocking UI
                     const blob = await bufferToMp3Worker(renderedBuffer);
                     downloadBlob(blob, 'mp3');
                 }
-
-                document.getElementById('download-btn').classList.add('hidden');
+                
+                // Ensure buttons stay visible (Removed hiding logic)
                 document.getElementById('reload-btn').classList.remove('hidden');
+                
             } catch (error) {
                 console.error(error);
-                alert("Export failed. Please try again.");
+                alert(error.message || "Export failed. Please try again.");
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = originalText;
@@ -694,10 +748,10 @@
         }
 
         async function renderOfflineBuffer() {
+            // Trim Logic (Keep Selection)
             const start = activeRegion.start;
             const duration = activeRegion.end - start;
-            // Validate limits
-            if(duration <= 0) throw new Error("Invalid duration");
+            if(duration <= 0.0001) throw new Error("Selection too short.");
             
             const offlineCtx = new OfflineAudioContext(
                 audioBuffer.numberOfChannels,
@@ -707,47 +761,84 @@
             const source = offlineCtx.createBufferSource();
             source.buffer = audioBuffer;
             
-            // --- NEW: EFFECTS CHAIN ---
+            applyEffects(offlineCtx, source, start, duration);
             
-            // 1. Gain (Volume) Node
+            source.start(0, start, duration);
+            return await offlineCtx.startRendering();
+        }
+
+        async function renderCutBuffer() {
+            // Cut Logic (Remove Selection, Keep Rest)
+            const regionStart = activeRegion.start;
+            const regionEnd = activeRegion.end;
+            const regionDuration = regionEnd - regionStart;
+            const totalDuration = audioBuffer.duration;
+            const newDuration = totalDuration - regionDuration;
+            
+            if(newDuration <= 0.1) throw new Error("Resulting audio is too short.");
+
+            const offlineCtx = new OfflineAudioContext(
+                audioBuffer.numberOfChannels,
+                newDuration * audioBuffer.sampleRate,
+                audioBuffer.sampleRate
+            );
+
+            // Part 1: Before Selection
+            const source1 = offlineCtx.createBufferSource();
+            source1.buffer = audioBuffer;
+            
+            // Part 2: After Selection
+            const source2 = offlineCtx.createBufferSource();
+            source2.buffer = audioBuffer;
+
+            // Apply global effects to both parts (Volume only, fades might be tricky on cut)
+            // Ideally we apply fade in at 0 and fade out at end of part 2
+            const gainNode = offlineCtx.createGain();
+            const volumePercent = parseInt(document.getElementById('volume').value) || 100;
+            gainNode.gain.value = volumePercent / 100;
+            
+            source1.connect(gainNode);
+            source2.connect(gainNode);
+            gainNode.connect(offlineCtx.destination);
+
+            // Schedule Part 1: Play from 0 to regionStart
+            source1.start(0, 0, regionStart);
+            
+            // Schedule Part 2: Play from regionEnd to end, start time = regionStart
+            source2.start(regionStart, regionEnd, totalDuration - regionEnd);
+
+            return await offlineCtx.startRendering();
+        }
+
+        function applyEffects(offlineCtx, source, startOffset, duration) {
             const gainNode = offlineCtx.createGain();
             const volumePercent = parseInt(document.getElementById('volume').value) || 100;
             const gainValue = volumePercent / 100;
-            
-            // Set base volume
             gainNode.gain.value = gainValue;
             
-            // 2. Fades
             const fadeIn = document.getElementById('fade-in').checked;
             const fadeOut = document.getElementById('fade-out').checked;
-            const fadeDuration = Math.min(3, duration / 2); // Max 3s, or half duration if short
+            const fadeDuration = Math.min(3, duration / 2); 
             
             if (fadeIn) {
                 gainNode.gain.setValueAtTime(0, 0);
                 gainNode.gain.linearRampToValueAtTime(gainValue, fadeDuration);
             }
-            
             if (fadeOut) {
-                // Ensure volume is set before fade out starts
                 gainNode.gain.setValueAtTime(gainValue, duration - fadeDuration);
                 gainNode.gain.linearRampToValueAtTime(0, duration);
             }
 
-            // Connect graph: Source -> Gain (Effects) -> Destination
             source.connect(gainNode);
             gainNode.connect(offlineCtx.destination);
-            
-            source.start(0, start, duration);
-            return await offlineCtx.startRendering();
         }
 
         function downloadBlob(blob, ext) {
             const url = URL.createObjectURL(blob);
             const link = document.getElementById('download-link');
             link.href = url;
-            link.download = `SonicSlice_cut_${Date.now()}.${ext}`;
+            link.download = `SonicSlice_output_${Date.now()}.${ext}`;
             link.click();
-            // Cleanup
             setTimeout(() => URL.revokeObjectURL(url), 100);
         }
 
@@ -768,16 +859,11 @@
             function setUint32(data) { view.setUint32(pos, data, true); pos += 4; }
         }
 
-        // --- PRODUCTION UPGRADE: Web Worker Wrapper ---
         function bufferToMp3Worker(buffer) {
             return new Promise((resolve, reject) => {
                 const channels = buffer.numberOfChannels;
                 const sampleRate = buffer.sampleRate;
                 const left = buffer.getChannelData(0);
-                // Int16 conversion happens inside worker to save main thread
-                // We send raw Float32 data but converting it here is faster for transfer
-                // Let's do simple conversion here to prepare for lamejs which expects Int16
-                
                 const len = left.length;
                 const leftI16 = new Int16Array(len);
                 const rightI16 = channels > 1 ? new Int16Array(len) : undefined;
@@ -785,38 +871,27 @@
                 for (let i = 0; i < len; i++) {
                     let s = Math.max(-1, Math.min(1, left[i]));
                     leftI16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
-                    
                     if (channels > 1) {
                         let s2 = Math.max(-1, Math.min(1, buffer.getChannelData(1)[i]));
                         rightI16[i] = s2 < 0 ? s2 * 0x8000 : s2 * 0x7FFF;
                     }
                 }
 
-                // Create Blob for Worker
                 const blob = new Blob([mp3WorkerCode], { type: "application/javascript" });
                 const worker = new Worker(URL.createObjectURL(blob));
 
                 worker.onmessage = function(e) {
                     resolve(new Blob(e.data, { type: 'audio/mp3' }));
-                    worker.terminate(); // Cleanup
+                    worker.terminate();
                 };
-
                 worker.onerror = function(e) {
                     reject(e);
                     worker.terminate();
                 };
-
-                // Send data
-                worker.postMessage({
-                    channels,
-                    sampleRate,
-                    left: leftI16,
-                    right: rightI16
-                });
+                worker.postMessage({ channels, sampleRate, left: leftI16, right: rightI16 });
             });
         }
 
-        // --- Interaction Handlers ---
         function togglePlay() {
             if (!wavesurfer) return;
             if (wavesurfer.isPlaying()) wavesurfer.pause();
@@ -838,8 +913,9 @@
         function seekToStart() { if(wavesurfer) { if(activeRegion) wavesurfer.setTime(activeRegion.start); else wavesurfer.setTime(0); }}
         
         function updateTimeDisplay(start, end) {
-            document.getElementById('start-time').innerText = formatTime(start);
-            document.getElementById('end-time').innerText = formatTime(end);
+            document.getElementById('manual-start').value = formatTime(start);
+            document.getElementById('manual-end').value = formatTime(end);
+            document.getElementById('selection-duration').innerText = formatTime(end - start);
         }
         
         function formatTime(seconds) {
@@ -847,7 +923,16 @@
             const m = Math.floor(seconds / 60);
             const s = Math.floor(seconds % 60);
             const ms = Math.floor((seconds % 1) * 100);
-            return `${m}:${s.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
+            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
+        }
+
+        function parseTime(timeStr) {
+            const parts = timeStr.split(':');
+            if(parts.length !== 2) return null;
+            const minutes = parseInt(parts[0]);
+            const seconds = parseFloat(parts[1]);
+            if(isNaN(minutes) || isNaN(seconds)) return null;
+            return (minutes * 60) + seconds;
         }
     </script>
 </body>
